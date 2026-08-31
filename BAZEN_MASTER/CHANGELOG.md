@@ -210,3 +210,9 @@ Obsahuje iba potvrdené architektonické rozhodnutia.
 - 6. 8. 2026 bol solár opravený a prestavaný na konfiguráciu 5 strešných + 3 spodné panely; pozorovaný prietok po úprave bol približne 9–9,5 m³/h.
 - 11. 8. 2026 došlo k utrhnutiu hadice a úniku približne 2,5 m³ vody; následne boli použité hrubšie hadice.
 - Test 25. 7. 2026 potvrdil ohrev približne 21,5 → 30,3 °C za približne 3 h 50 min pri spotrebe asi 5–6 l paliva; išlo o test celej zostavy s aktívnym horákom aj solárom.
+
+## 2026-08-31
+
+- Implementovaná (bez fyzického uploadu/testu) aktualizácia ESP Wi-Fi/web HMI: predvolená sieť `STRONG`, hlavný stavový prehľad, `/errors`, `/logs` a minútové denné LittleFS CSV logovanie.
+- Mega Wi-Fi telemetria bola rozšírená iba o webové diagnostické polia `TBOX`, `SETMIN`, `SETMAX`, `MODE`, `ULINK`, `MAGR` a `UAGR`. Riadiace príkazy, V4 Mega↔Uno protokol, safety logika a piny sa nemenili.
+- UNO chrlič a preplach zostávajú neimplementované; na web nepribudlo ich ovládanie ani nové fyzické výstupy.

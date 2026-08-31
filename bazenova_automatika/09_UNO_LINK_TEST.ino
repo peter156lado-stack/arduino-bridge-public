@@ -1,8 +1,8 @@
 // BINARNA DIAGNOSTICKA/KOMUNIKACNA LINKA MEGA <-> UNO
-// Mega Serial2: D16/TX2, D17/RX2, 9600 Bd. Link zatial riadi iba prvu
+// Mega Serial2: D16/TX2, D17/RX2, 38400 Bd. Link zatial riadi iba prvu
 // fyzicku agreement skusku; UART nie je finalny safety heartbeat.
 
-const unsigned long UNO_LINK_BAUD = 9600UL;
+const unsigned long UNO_LINK_BAUD = 38400UL;
 const unsigned long UNO_LINK_FRAME_INTERVAL_MS = 1000UL;
 const unsigned long UNO_REPLY_WAIT_MS = 500UL;
 const unsigned long UNO_LINK_TIMEOUT_MS = 10000UL;
@@ -246,7 +246,7 @@ void aktualizujKrizovuDiagnostiku() {
 void inicializaciaUnoLinkTest() {
   Serial2.begin(UNO_LINK_BAUD);
   unoLinkPosledneFrameTxMs = millis() - UNO_LINK_FRAME_INTERVAL_MS;
-  Serial.println("UNO LINK: Serial2 D16/D17 @ 9600, BINARY V4 CRC8");
+  Serial.println("UNO LINK: Serial2 D16/D17 @ 38400, BINARY V4 CRC8");
 }
 
 void nastavMegaAgreement(bool povolit) {

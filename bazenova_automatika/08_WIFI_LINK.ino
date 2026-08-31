@@ -8,7 +8,8 @@
 const unsigned long WIFI_BAUD = 115200UL;
 const unsigned long WIFI_DATA_INTERVAL = 1000UL;
 const size_t WIFI_RX_BUFFER_VELKOST = 48;
-const size_t WIFI_TX_BUFFER_VELKOST = 384;
+// Web telemetry additions only; the Mega<->Uno V4 frames and safety behaviour stay unchanged.
+const size_t WIFI_TX_BUFFER_VELKOST = 512;
 
 char wifiRxBuffer[WIFI_RX_BUFFER_VELKOST];
 size_t wifiRxDlzka = 0;
@@ -72,6 +73,10 @@ void pripravWifiData() {
   wifiPridajFloat(teplotaBazena, T1_OK || T4_OK);
   wifiPridajText(";SET=");
   wifiPridajFloat(MAX_BAZEN, true);
+  wifiPridajText(";SETMIN=");
+  wifiPridajFloat(MAX_BAZEN_MIN, true);
+  wifiPridajText(";SETMAX=");
+  wifiPridajFloat(MAX_BAZEN_MAX, true);
 
   wifiPridajText(";SYS=");
   if (!system_OK) wifiPridajText("HAVARIA");
@@ -86,6 +91,24 @@ void pripravWifiData() {
   wifiPridajText(manualFiltracia6h ? "1" : "0");
   wifiPridajText(";CHR=");
   wifiPridajText(chrlicManualAktivny ? "1" : "0");
+  // Optional web-only diagnostics. Older ESP firmware safely ignores these fields.
+  wifiPridajText(";TBOX=");
+  wifiPridajFloat(MEGA_TBOX_OK ? megaTbox : unoRemoteTboxHodnota(),
+                   MEGA_TBOX_OK || unoRemoteTboxPlatna());
+  wifiPridajText(";MODE=");
+  switch (systemMode) {
+    case MODE_SMART: wifiPridajText("SMART"); break;
+    case MODE_DEGRADED: wifiPridajText("DEGRADED"); break;
+    case MODE_BASIC: wifiPridajText("BASIC"); break;
+    case MODE_STOP: wifiPridajText("STOP"); break;
+    default: wifiPridajText("NA"); break;
+  }
+  wifiPridajText(";ULINK=");
+  wifiPridajText(unoLinkStavOk ? "1" : "0");
+  wifiPridajText(";MAGR=");
+  wifiPridajText(megaAgreementOn ? "1" : "0");
+  wifiPridajText(";UAGR=");
+  wifiPridajText(unoAgreementOnRemote ? "1" : "0");
 
   // Rele moduly su aktivne v LOW. Iba R9 a R10 su v projekte riadene.
   wifiPridajText(";R1=NA;R2=NA;R3=NA;R4=NA;R5=NA;R6=NA;R7=NA;R8=NA");

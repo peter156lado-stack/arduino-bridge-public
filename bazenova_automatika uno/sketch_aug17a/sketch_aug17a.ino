@@ -36,7 +36,7 @@ const byte SD_CS_PIN = 10;
 const unsigned long SD_LOG_INTERVAL_MS = 60000UL;
 const unsigned long SD_RECOVERY_INTERVAL_MS = 60000UL;
 // Diagnosticka/telemetricka linka Mega <-> Uno; nejde o safety heartbeat.
-const unsigned long MEGA_LINK_BAUD = 9600UL;
+const unsigned long MEGA_LINK_BAUD = 38400UL;
 const unsigned long MEGA_LINK_FRAME_INTERVAL_MS = 1000UL;
 const unsigned long MEGA_LINK_TIMEOUT_MS = 10000UL;
 const unsigned long MEGA_REMOTE_TIMEOUT_MS = 10000UL;

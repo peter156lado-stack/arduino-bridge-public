@@ -1126,3 +1126,12 @@ Zatiaľ nie sú potvrdené a nesmú sa domýšľať:
 - typ článkov, paralelné skupiny, model BMS, model 24 V step-up a poistky plánovanej UPS;
 - konkrétne elektrické zapojenie dopúšťania, typ COAX ventilu, riadiaci pin a diagnostika plavákov;
 - piny a poruchová logika infračerveného snímača plameňa.
+
+## ESP Wi-Fi/web HMI – implementované vo firmvéri, čaká na fyzický test (2026-08-31)
+
+- ESP web HMI prijíma rozšíriteľnú telemetriu Mega cez existujúci Serial3 link; riadiace príkazy zostávajú iba `SETTEMP=`, `FIL6H=TOGGLE` a `CHR1H=TOGGLE`.
+- Hlavná stránka zobrazuje Mega T1–T4, TBOX, AHT10 OUT/RH, regulačnú bazénovú teplotu, limity a nastavenie MAX_BAZEN, režim systému, R9/R10 súvisiace stavy a Mega↔Uno link/agreement.
+- ESP web HMI má diagnostickú stránku `/errors` a stránku `/logs`. Nezasahuje do TOTAL STOP, SMART/BASIC agreementu ani regulácie.
+- Denné teplotné CSV logy sú implementované v LittleFS ESP v intervale 60 s. Súbory majú tvar `/log_YYYYMMDD.csv`; automatické mazanie starších súborov nie je implementované. Pri nedostupnom LittleFS alebo chybe zápisu pokračuje HMI aj Mega/Uno bez zmeny riadenia; stav logovania je diagnostický.
+- Uno SD logger sa týmto nemení a ostáva nezávislou diagnostickou/bezpečnostnou vrstvou. UNO chrlič ani UNO preplach nie sú v aktuálnom kóde/protokole implementované; web ich nesmie prezentovať ako funkčné ovládanie.
+- Predvolená Wi-Fi konfigurácia ESP firmvéru je `STRONG`; fyzické pripojenie novej siete a dostupná veľkosť LittleFS sú `NEOVERENÉ`.
