@@ -52,7 +52,8 @@ const byte MEGA_FRAME_SIZE = 24;
 
 OneWire oneWire(ONE_WIRE_PIN);
 DallasTemperature sensors(&oneWire);
-SoftwareSerial megaLinkSerial(MEGA_LINK_RX_PIN, MEGA_LINK_TX_PIN, true);
+// Priame TTL UART prepojenie Mega <-> Uno bez optoclenov; neinvertovana logika.
+SoftwareSerial megaLinkSerial(MEGA_LINK_RX_PIN, MEGA_LINK_TX_PIN, false);
 
 // Fixne ROM adresy fyzicky otestovanych snimacov.
 const DeviceAddress T1_ADDRESS = {
