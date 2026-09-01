@@ -10,7 +10,7 @@ const unsigned long UNO_REMOTE_TIMEOUT_MS = 10000UL;
 const unsigned long MEGA_SMART_STABILIZACIA_MS = 180000UL;
 const byte LINK_MAGIC_1 = 0xBA;
 const byte LINK_MAGIC_2 = 0x5E;
-const byte LINK_PROTOCOL_VERSION = 4;
+const byte LINK_PROTOCOL_VERSION = 5;
 const byte LINK_TYPE_UNO_TO_MEGA = 0x01;
 const byte LINK_TYPE_MEGA_TO_UNO = 0x02;
 const byte UNO_FRAME_SIZE = 22;
@@ -19,7 +19,7 @@ const byte MEGA_FRAME_SIZE = 24;
 struct UnoRemoteSnapshot {
   float t1, t2, t3, tbox, sonar;
   bool t1Ok, t2Ok, t3Ok, tboxOk, sonarOk;
-  bool unoAgreementOn;
+  bool unoAgreementOn, xkcLowWater;
   byte sonarStav, unoStav;
   unsigned int sekvencia;
 };
@@ -27,7 +27,7 @@ struct UnoRemoteSnapshot {
 UnoRemoteSnapshot unoRemote = {
   0.0f, 0.0f, 0.0f, 0.0f, 0.0f,
   false, false, false, false, false,
-  false, 0, 2, 0
+  false, false, 0, 2, 0
 };
 
 byte unoLinkRxBuffer[UNO_FRAME_SIZE];
@@ -66,6 +66,7 @@ bool MEGA_T1_SUSPECT = false;
 bool UNO_T1_SUSPECT = false;
 bool MEGA_T2_SUSPECT = false;
 bool UNO_T2_SUSPECT = false;
+bool XKC_CONFLICT = false;
 const float KRIZOVA_DIAG_TOLERANCIA_C = 2.0f;
 const unsigned long KRIZOVA_DIAG_STABILIZACIA_MS = 10UL * 60UL * 1000UL;
 unsigned long solarStabilnyOdMs = 0;
@@ -146,11 +147,12 @@ void prijmiUnoRamec() {
   novy.sonar = (float)citajU16(unoLinkRxBuffer, 16) / 10.0f;
   novy.t3 = stotinyNaTeplotu(citajI16(unoLinkRxBuffer, 18));
   const byte remoteFlags = unoLinkRxBuffer[20];
-  if ((remoteFlags & 0xFE) != 0) {
+  if ((remoteFlags & 0xFC) != 0) {
     unoFrameInvalid++;
     return;
   }
   novy.unoAgreementOn = (remoteFlags & 0x01) != 0;
+  novy.xkcLowWater = (remoteFlags & 0x02) != 0;
   if (unoSekvenciaPlatna && novy.sekvencia != (unsigned int)(unoPoslednaSekvencia + 1U)) unoSeqGapCount++;
   unoPoslednaSekvencia = novy.sekvencia;
   unoSekvenciaPlatna = true;
@@ -200,6 +202,7 @@ void pripravMegaRamec() {
   if (UNO_T1_SUSPECT) diagnostika |= 0x08;
   if (MEGA_T2_SUSPECT) diagnostika |= 0x10;
   if (UNO_T2_SUSPECT) diagnostika |= 0x20;
+  if (megaXkcLowWater) diagnostika |= 0x40;
   unoLinkTxBuffer[10] = diagnostika;
   // Kompatibilny Mega health stav 0/1/2 zostava docasne agreement vstupom Una.
   // Nie je druhou autoritou SYSTEM_MODE.
@@ -220,6 +223,7 @@ void aktualizujKrizovuDiagnostiku() {
   REMOTE_DATA_VALID = unoRemotePoslednyRamecMs != 0 && teraz - unoRemotePoslednyRamecMs < UNO_REMOTE_TIMEOUT_MS;
   // Vzdialene agreement je pravdive iba spolu s cerstvym validnym ramcom.
   unoAgreementOnRemote = REMOTE_DATA_VALID && unoRemote.unoAgreementOn;
+  XKC_CONFLICT = REMOTE_DATA_VALID && megaXkcLowWater != unoRemote.xkcLowWater;
   T1_CONFLICT = REMOTE_DATA_VALID && T1_OK && unoRemote.t1Ok && fabs(t1 - unoRemote.t1) > KRIZOVA_DIAG_TOLERANCIA_C;
   T2_CONFLICT = REMOTE_DATA_VALID && T2_OK && unoRemote.t2Ok && fabs(t2 - unoRemote.t2) > KRIZOVA_DIAG_TOLERANCIA_C;
   if (solarZapnuty && !solarBolZapnutyPreDiagnostiku) solarStabilnyOdMs = teraz;
@@ -246,13 +250,13 @@ void aktualizujKrizovuDiagnostiku() {
 void inicializaciaUnoLinkTest() {
   Serial2.begin(UNO_LINK_BAUD);
   unoLinkPosledneFrameTxMs = millis() - UNO_LINK_FRAME_INTERVAL_MS;
-  Serial.println("UNO LINK: Serial2 D16/D17 @ 38400, BINARY V4 CRC8");
+  Serial.println("UNO LINK: Serial2 D16/D17 @ 38400, BINARY V5 CRC8");
 }
 
 void nastavMegaAgreement(bool povolit) {
   if (megaAgreementOn == povolit) return;
   megaAgreementOn = povolit;
-  digitalWrite(MEGA_HL_RELAY_2_PIN, megaAgreementOn ? HIGH : LOW);
+  digitalWrite(MEGA_AGREEMENT_WATCHDOG_PIN, megaAgreementOn ? HIGH : LOW);
   Serial.println(megaAgreementOn ? F("RECOVERY: MEGA_AGREEMENT=ON")
                                  : F("EVENT: MEGA_AGREEMENT=OFF"));
 }
@@ -374,6 +378,8 @@ float unoRemoteT3Hodnota() { return unoRemote.t3; }
 float unoRemoteTboxHodnota() { return unoRemote.tbox; }
 float unoRemoteSonarHodnota() { return unoRemote.sonar; }
 bool unoRemoteSonarPlatny() { return REMOTE_DATA_VALID && unoRemote.sonarOk; }
+bool unoRemoteXkcPlatny() { return REMOTE_DATA_VALID; }
+bool unoRemoteXkcLowWater() { return unoRemote.xkcLowWater; }
 
 const char *textZdroja(byte zdroj) {
   switch (zdroj) {

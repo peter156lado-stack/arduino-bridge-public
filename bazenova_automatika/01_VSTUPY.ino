@@ -17,6 +17,29 @@ OneWire oneWire(ONE_WIRE_BUS);
 DallasTemperature sensors(&oneWire);
 
 // --------------------------------------------------
+// XKC-Y25-NPN LOW WATER - COMMISSIONING MONITOR
+// --------------------------------------------------
+
+const byte MEGA_XKC_PIN = 30;
+bool megaXkcLowWater = false;
+bool megaXkcInicializovany = false;
+
+void aktualizujMegaXkc() {
+  const bool novyLowWater = digitalRead(MEGA_XKC_PIN) == HIGH;
+
+  if (!megaXkcInicializovany) {
+    megaXkcLowWater = novyLowWater;
+    megaXkcInicializovany = true;
+    return;
+  }
+
+  if (novyLowWater == megaXkcLowWater) return;
+  megaXkcLowWater = novyLowWater;
+  Serial.println(megaXkcLowWater ? F("EVENT: MEGA_XKC=LOW_WATER")
+                                : F("RECOVERY: MEGA_XKC=WATER"));
+}
+
+// --------------------------------------------------
 // MEGA HY-SRF05 - MONITOROVANIE HLADINY
 // --------------------------------------------------
 
@@ -658,6 +681,10 @@ void vypisAdresyDS18B20() {
 // ==================================================
 
 void inicializaciaVstupov() {
+
+  pinMode(MEGA_XKC_PIN, INPUT_PULLUP);
+  megaXkcLowWater = digitalRead(MEGA_XKC_PIN) == HIGH;
+  megaXkcInicializovany = true;
 
   pinMode(MEGA_SONAR_TRIG_PIN, OUTPUT);
   pinMode(MEGA_SONAR_ECHO_PIN, INPUT);

@@ -15,8 +15,7 @@ enum SystemMode : byte {
 // Boot a cela 180 s agreement stabilizacia patria do BASIC.
 SystemMode systemMode = MODE_BASIC;
 
-extern const int HEARTBEAT_PIN;
-extern const byte MEGA_HL_RELAY_2_PIN;
+extern const byte MEGA_AGREEMENT_WATCHDOG_PIN;
 extern bool megaAgreementOn;
 extern bool testR9Aktivny;
 void vypisMegaProblemSummary();
@@ -24,8 +23,6 @@ void vypisMegaSmartStable();
 
 unsigned long casPoslednehoCyklu = 0;
 unsigned long casPoslednejMegaDiagnostiky = 0;
-unsigned long casHeartbeat = 0;
-bool heartbeatAktivny = false;
 bool megaDiagnostickyVypis = false;
 
 // Lahka diagnostika trvania posledneho dokonceneho procesneho cyklu.
@@ -76,26 +73,6 @@ void vypisMegaTiming() {
   Serial.print(F(" OVER_1500MS=")); Serial.println(megaCycleOver1500msCount);
 }
 
-void aktualizujHeartbeat() {
-
-  unsigned long teraz = millis();
-
-  if (heartbeatAktivny) {
-
-    if (teraz - casHeartbeat >= 100) {
-
-      digitalWrite(HEARTBEAT_PIN, LOW);
-      heartbeatAktivny = false;
-    }
-  }
-  else if (teraz - casHeartbeat >= 500) {
-
-    digitalWrite(HEARTBEAT_PIN, HIGH);
-    heartbeatAktivny = true;
-    casHeartbeat = teraz;
-  }
-}
-
 void setup() {
 
   // ------------------------------------------------
@@ -104,10 +81,10 @@ void setup() {
 
   Serial.begin(115200);
 
-  // Fail-safe boot: agreement je zakazane skor, nez sa spusti V3 linka.
-  digitalWrite(MEGA_HL_RELAY_2_PIN, LOW);
-  pinMode(MEGA_HL_RELAY_2_PIN, OUTPUT);
-  digitalWrite(MEGA_HL_RELAY_2_PIN, LOW);
+  // Watchdog/povolovacia vetva D31 je zakazana skor, nez sa spusti V5 linka.
+  digitalWrite(MEGA_AGREEMENT_WATCHDOG_PIN, LOW);
+  pinMode(MEGA_AGREEMENT_WATCHDOG_PIN, OUTPUT);
+  digitalWrite(MEGA_AGREEMENT_WATCHDOG_PIN, LOW);
   inicializaciaWifiLink();
   inicializaciaUnoLinkTest();
 
@@ -115,16 +92,10 @@ void setup() {
   skenujI2C();
   inicializaciaAHT10();
 
-  pinMode(HEARTBEAT_PIN, OUTPUT);
-  digitalWrite(HEARTBEAT_PIN, LOW);
-
   inicializaciaTlacidiel();
 
   casPoslednehoCyklu = millis() - 2000UL;
   casPoslednejMegaDiagnostiky = millis() - 10000UL;
-  casHeartbeat = millis();
-
-
   // ------------------------------------------------
   // INICIALIZACIA VSTUPOV
   // ------------------------------------------------
@@ -155,10 +126,10 @@ void setup() {
 
 void loop() {
 
-  aktualizujHeartbeat();
   aktualizujTlacidla();
   aktualizujRotaciuHMI();
   aktualizujWifiLink();
+  aktualizujMegaXkc();
   aktualizujMegaSonar();
   aktualizujUnoLink();
   if (testR9Aktivny) {

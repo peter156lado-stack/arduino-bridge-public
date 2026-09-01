@@ -16,6 +16,8 @@ const byte MEGA_LINK_TX_PIN = 8;
 const byte UNO_HL_RELAY_1_PIN = 9;
 // UNO_TOTAL_STOP: buduca vedoma safety autorita. Boot/default = LOW / COM-NC.
 const byte UNO_TOTAL_STOP_PIN = A0;
+// XKC commissioning vstup cez samostatny PC817/HY-M154 kanal.
+const byte UNO_XKC_PIN = A2;
 
 const unsigned long TEMPERATURE_INTERVAL_MS = 5300UL;
 // Po vypadku napajania sa DS18B20 vrati na 12 bit (max. 750 ms).
@@ -44,7 +46,7 @@ const unsigned long UNO_SMART_STABILIZACIA_MS = 180000UL;
 const unsigned long CAS_SYNC_INTERVAL_MS = 60UL * 60UL * 1000UL;
 const byte LINK_MAGIC_1 = 0xBA;
 const byte LINK_MAGIC_2 = 0x5E;
-const byte LINK_PROTOCOL_VERSION = 4;
+const byte LINK_PROTOCOL_VERSION = 5;
 const byte LINK_TYPE_UNO_TO_MEGA = 0x01;
 const byte LINK_TYPE_MEGA_TO_UNO = 0x02;
 const byte UNO_FRAME_SIZE = 22;
@@ -54,6 +56,24 @@ OneWire oneWire(ONE_WIRE_PIN);
 DallasTemperature sensors(&oneWire);
 // Priame TTL UART prepojenie Mega <-> Uno bez optoclenov; neinvertovana logika.
 SoftwareSerial megaLinkSerial(MEGA_LINK_RX_PIN, MEGA_LINK_TX_PIN, false);
+
+bool unoXkcLowWater = false;
+bool unoXkcInicializovany = false;
+
+void aktualizujUnoXkc() {
+  const bool novyLowWater = digitalRead(UNO_XKC_PIN) == HIGH;
+
+  if (!unoXkcInicializovany) {
+    unoXkcLowWater = novyLowWater;
+    unoXkcInicializovany = true;
+    return;
+  }
+
+  if (novyLowWater == unoXkcLowWater) return;
+  unoXkcLowWater = novyLowWater;
+  Serial.println(unoXkcLowWater ? F("EVENT: UNO_XKC=LOW_WATER")
+                               : F("RECOVERY: UNO_XKC=WATER"));
+}
 
 // Fixne ROM adresy fyzicky otestovanych snimacov.
 const DeviceAddress T1_ADDRESS = {
@@ -189,8 +209,6 @@ bool diagnostickyPodpisPlatny = false;
 // ==================================================
 
 struct BuduceBezpecnostneStavy {
-  bool xkcY25LowWater;
-  bool xkcY25Platny;
   bool resetAckStlaceny;
   bool heartbeatMegaPrijaty;
   bool heartbeatUnoAktivny;
@@ -200,7 +218,7 @@ struct BuduceBezpecnostneStavy {
 };
 
 BuduceBezpecnostneStavy buduceStavy = {
-  false, false, false, false, false, false, false, false
+  false, false, false, false, false, false
 };
 
 bool teplotaJePlatna(float hodnota) {
@@ -295,7 +313,8 @@ void prijmiMegaRamec() {
   novy.t2Zdroj = megaLinkRxBuffer[9];
   novy.diagnostika = megaLinkRxBuffer[10];
   novy.megaStav = megaLinkRxBuffer[11];
-  if (novy.poolZdroj > 3 || novy.t2Zdroj > 3 || novy.diagnostika > 63 || novy.megaStav > 2) {
+  if (novy.poolZdroj > 3 || novy.t2Zdroj > 3 ||
+      (novy.diagnostika & 0x80) != 0 || novy.megaStav > 2) {
     megaFrameInvalid++;
     return;
   }
@@ -366,8 +385,9 @@ void pripravUnoTelemetriu() {
   if (sonarStav == SONAR_OK) sonarDesatiny = (unsigned int)(sonarVzdialenostCm * 10.0f + 0.5f);
   zapisU16(megaLinkTxBuffer, 16, sonarDesatiny);
   zapisI16(megaLinkTxBuffer, 18, T3_OK ? teplotaNaStotiny(teplotaT3) : 0);
-  // V4 rezervovane flagy: bit 0 = fyzicky/logicky povoleny UNO agreement.
-  megaLinkTxBuffer[20] = unoAgreementOn ? 0x01 : 0x00;
+  // V5 flagy: bit 0 = UNO agreement, bit 1 = lokalny XKC LOW WATER.
+  megaLinkTxBuffer[20] = (unoAgreementOn ? 0x01 : 0x00) |
+                         (unoXkcLowWater ? 0x02 : 0x00);
   megaLinkTxBuffer[21] = linkCrc8(megaLinkTxBuffer, UNO_FRAME_SIZE - 1);
   megaLinkTxPozicia = 0;
 }
@@ -412,6 +432,14 @@ void aktualizujMegaVysledok() {
   MEGA_RESULT_VALID = megaRemotePoslednyRamecMs != 0 &&
                       teraz - megaRemotePoslednyRamecMs < MEGA_REMOTE_TIMEOUT_MS;
   synchronizujSoftCasAkTreba();
+}
+
+bool megaRemoteXkcLowWater() {
+  return (megaVysledok.diagnostika & 0x40) != 0;
+}
+
+bool unoXkcConflict() {
+  return MEGA_RESULT_VALID && unoXkcLowWater != megaRemoteXkcLowWater();
 }
 
 void inicializujMegaLinkTest() {
@@ -905,6 +933,17 @@ void vypisDiagnostiku() {
   Serial.print(F(" AGR=")); Serial.print(unoAgreementOn ? F("ON") : F("OFF"));
   Serial.print(F(" SD=")); Serial.println(sdLoggerDostupny ? F("OK") : F("CHYBA"));
 
+  Serial.print(F("UNO_XKC="));
+  Serial.print(unoXkcLowWater ? F("LOW_WATER") : F("WATER"));
+  Serial.print(F(" MEGA_XKC_REMOTE="));
+  if (MEGA_RESULT_VALID)
+    Serial.print(megaRemoteXkcLowWater() ? F("LOW_WATER") : F("WATER"));
+  else
+    Serial.print(F("STALE"));
+  Serial.print(F(" XKC_CONFLICT="));
+  if (!MEGA_RESULT_VALID) Serial.println(F("NA"));
+  else Serial.println(unoXkcConflict() ? F("YES") : F("NO"));
+
   Serial.print(F("T1="));
   if (T1_OK) { Serial.print(teplotaT1, 2); Serial.print(F(" OK")); }
   else Serial.print(F("-- ERR"));
@@ -935,12 +974,16 @@ void vypisDiagnostiku() {
 void setup() {
   Serial.begin(115200);
 
+  pinMode(UNO_XKC_PIN, INPUT_PULLUP);
+  unoXkcLowWater = digitalRead(UNO_XKC_PIN) == HIGH;
+  unoXkcInicializovany = true;
+
   // Fail-safe boot: bez schvalenej TOTAL STOP podmienky zostava COM-NC.
   digitalWrite(UNO_TOTAL_STOP_PIN, LOW);
   pinMode(UNO_TOTAL_STOP_PIN, OUTPUT);
   digitalWrite(UNO_TOTAL_STOP_PIN, LOW);
 
-  // Fail-safe boot: agreement je zakazane skor, nez sa spusti V3 linka.
+  // Fail-safe boot: agreement je zakazane skor, nez sa spusti V5 linka.
   digitalWrite(UNO_HL_RELAY_1_PIN, LOW);
   pinMode(UNO_HL_RELAY_1_PIN, OUTPUT);
   digitalWrite(UNO_HL_RELAY_1_PIN, LOW);
@@ -965,7 +1008,7 @@ void setup() {
   casPoslednejReinicializacieOneWire = millis();
   sonarPoslednyStartUs = micros() - SONAR_INTERVAL_US;
 
-  Serial.println(F("UNO START V4"));
+  Serial.println(F("UNO START V5"));
   Serial.println(F("UNO DS18B20 MAPA:"));
   Serial.println(F("UNO_T1 = BAZEN"));
   Serial.println(F("UNO_T2 = SOLAR VYSTUP"));
@@ -976,6 +1019,7 @@ void setup() {
 void loop() {
   aktualizujTeploty();
   aktualizujSonar();
+  aktualizujUnoXkc();
   aktualizujMegaLinkTest();
   vypisDiagnostiku();
   aktualizujSDRecovery();

@@ -9,7 +9,8 @@
 
 // Fyzicke kanaly 1-4 existujucej 16R dosky patria BASIC vrstve.
 // Mega ich nesmie ovladat; povodna vazba R1-R4 na D30-D33 bola odstranena.
-// D30 zostava volny. D31-D33 maju samostatne fyzicke funkcie mimo 16R dosky.
+// D30 je XKC commissioning vstup. D31-D33 maju samostatne fyzicke funkcie
+// mimo 16R dosky.
 
 const byte MEGA_TOTAL_STOP_PIN = 32;
 // W1209_FACKOVAC - Mega D33

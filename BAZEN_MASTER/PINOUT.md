@@ -1,6 +1,6 @@
 # BAZEN MASTER – pinout
 
-Aktualizované: 2026-08-26
+Aktualizované: 2026-09-01
 
 FYZICKY OVERENÉ znamená potvrdený fyzický test. POUŽITÉ V KÓDE nepotvrdzuje montáž. REZERVOVANÉ/NAVRHOVANÉ nikdy neznamená hotové zapojenie.
 
@@ -15,7 +15,8 @@ Použitá doska je kombinovaná Arduino Mega + WiFi Techfun IOT382: ATmega2560, 
 | D38 | MEGA HY-SRF05 TRIG | fyzicky funkčne overené; izolovaný test meral približne 19,3–19,8 cm |
 | D39 | MEGA HY-SRF05 ECHO | fyzicky funkčne overené ako obyčajný `INPUT`, bez interného pull-upu |
 | D20/D21 | AHT10 I²C | fyzicky namontované, funkčné a prevádzkovo overené meranie vonkajšej teploty a RH; zdieľaná I²C zbernica |
-| D31 | H/L relé modul #2 | FYZICKY OVERENÉ RIADENIE; 5 V, spoločná systémová GND/DC−; `HIGH → aktívne/COM–NO`, `LOW → neaktívne/COM–NC`; strata napájania → COM–NC |
+| D30 | MEGA_XKC | FYZICKY PRIPOJENÉ cez samostatný kanál HY-M154/PC817; `INPUT_PULLUP`; `LOW = WATER`, `HIGH = LOW_WATER / DRY / otvorená signálová cesta`; commissioning-only bez safety autority |
+| D31 | MEGA_AGREEMENT – fyzická watchdog/povoľovacia vetva | FYZICKY OVERENÉ RIADENIE; boot/reset LOW, po 180 s stability HIGH, strata podmienok okamžite LOW a recovery spúšťa nový 180 s interval; H/L modul `HIGH → COM–NO`, `LOW → COM–NC` |
 | D32 | MEGA_TOTAL_STOP | FYZICKY PRIPOJENÉ A COMMISSIONING TESTOM OVERENÉ; `HIGH → relé zopnuté/COM–NO`, `LOW → relé uvoľnené/COM–NC`; napájanie modulu z Mega power domain |
 | D33 | W1209_FACKOVAC | FYZICKY PRIPOJENÉ A COMMISSIONING TESTOM OVERENÉ; `HIGH → relé zopnuté/COM–NO`, `LOW → relé uvoľnené/COM–NC`; napájanie modulu z Mega power domain |
 
@@ -28,20 +29,20 @@ Ostatné jednotlivé Mega piny neboli v dodaných poznámkach výslovne označen
 | D0/D1 | UART | USB Serial0 diagnostika | 115200 Bd |
 | D2 | I/O | 1-Wire MEGA_T1–T4 + MEGA_TBOX | päť pevných ROM; MEGA_TBOX monitor-only |
 | D14/D15 | UART | Serial3 Mega↔onboard ESP | 115200 baud |
-| D16/D17 | UART | Serial2 Mega↔Uno – priame TTL | Mega D16/TX2 → sériový 10 kΩ → Uno D7/RX; Uno D8/TX → sériový 10 kΩ → Mega D17/RX2; 38400 Bd, MASTER→REPLY, V4 24 B/22 B; spoločná GND, bez PC817, bez prepojenia +5 V medzi doskami; Uno SoftwareSerial neinvertovaný |
+| D16/D17 | UART | Serial2 Mega↔Uno – priame TTL | Mega D16/TX2 → sériový 10 kΩ → Uno D7/RX; Uno D8/TX → sériový 10 kΩ → Mega D17/RX2; 38400 Bd, MASTER→REPLY, V5 24 B/22 B; spoločná GND, bez PC817, bez prepojenia +5 V medzi doskami; Uno SoftwareSerial neinvertovaný |
 | D20/D21 | I²C | DS3231, AHT10, LCD 20×4 | SDA/SCL; LCD používa 4-stranovú rotáciu 5 s, poruchová stránka pri aktívnom existujúcom probléme 30 s |
 | D22 | OUT | MEGA_R9 | filtrácia, aktívne LOW |
 | D23 | OUT | MEGA_R10 | solár/chrlič, aktívne LOW |
 | D24–D29 | deklarované | MEGA_R11–R16 | bez implementovanej funkcie |
-| D30 | — | voľné | pôvodný vodič k fyzickému reléovému kanálu 1 odstránený; bez nového pridelenia |
-| D31 | OUT | MEGA_AGREEMENT – H/L relé modul #2 | boot/reset LOW; platná linka + čerstvé dáta + nekritický stav Una počas 180 s → HIGH; link/stale timeout 10 s alebo kritický stav → okamžite LOW a timer od nuly; nie finálna BASIC/safety logika |
+| D30 | IN_PULLUP | MEGA_XKC | cez vlastný HY-M154/PC817 kanál; `LOW = WATER`, `HIGH = LOW_WATER / DRY / otvorená cesta`; iba commissioning diagnostika, bez zásahu do TOTAL STOP, režimu, agreement alebo relé |
+| D31 | OUT | MEGA_AGREEMENT – fyzická watchdog/povoľovacia vetva | boot/reset LOW; platná linka + čerstvé dáta + nekritický stav Una počas 180 s → HIGH; link/stale timeout 10 s alebo kritický stav → okamžite LOW a timer od nuly; fyzická funkcia agreement logiky overená, logika sa nemení |
 | D32 | OUT | MEGA_TOTAL_STOP | produkčný boot/reset stav `LOW / COM–NC`; fyzicky potvrdené správne ovládanie Mega TOTAL STOP modulu; automatické fault podmienky zatiaľ NEIMPLEMENTOVANÉ |
 | D33 | OUT | W1209_FACKOVAC (`W1209_SUPERVISION_RELAY_PIN`) | produkčný boot/reset stav `LOW / COM–NC`; fyzicky potvrdené správne ovládanie W1209 supervision modulu; autorita výhradne v budúcom explicitnom `SYSTEM_MODE == BASIC`; automatický power-cycle/fault stavový automat zatiaľ NEIMPLEMENTOVANÝ |
 | D34–D37 | deklarované | MEGA_R5–R8 | časť Mega/SMART, bez implementovanej funkcie |
 | D38 | OUT | MEGA HY-SRF05 TRIG | monitor-only, neblokujúci stavový automat |
 | D39 | IN | MEGA HY-SRF05 ECHO | monitor-only, obyčajný `INPUT` bez interného pull-upu, bez `pulseIn()` |
 | D40–D43 | — | voľná rezerva | nepridelené |
-| D44 | OUT | aktuálny heartbeat | externý watchdog |
+| D44 | — | voľné | starý fyzicky nepoužitý softvérový heartbeat kompletne odstránený |
 | D45 | IN_PULLUP | SET | tlačidlo |
 | D46 | IN_PULLUP | PLUS | tlačidlo |
 | D47 | IN_PULLUP | MÍNUS | tlačidlo |
@@ -75,9 +76,8 @@ Fyzicky potvrdené: prepojenia Mega → kanály 1–4 boli odstránené a Mega i
 
 | Funkcia | Pin | Stav |
 |---|---|---|
-| XKC-Y25 vstup Mega | NEURČENÉ | PLÁNOVANÉ |
 | Lux senzor (skladovaný BH1750 je kandidát) | NEURČENÉ | PLÁNOVANÉ; pin/zbernica, adresa a prahy nepridelené |
-| SMART/BASIC H/L relé Mega | D31 | FYZICKY PRIPOJENÉ A RIADENÉ HLAVNÝM PROGRAMOM; `OUTPUT LOW` pri boote, HIGH až po 180 s stability, timeout 10 s → okamžite LOW; finálna BASIC/safety vrstva a použitie kontaktov ešte NEIMPLEMENTOVANÉ |
+| SMART/BASIC H/L relé Mega | D31 | FYZICKÁ WATCHDOG/POVOĽOVACIA VETVA, riadená existujúcou MEGA_AGREEMENT logikou; `OUTPUT LOW` pri boote, HIGH až po 180 s stability, timeout 10 s → okamžite LOW |
 | FIL_BLOCK relé Mega | NEURČENÉ | PLÁNOVANÉ |
 | SOLAR_BLOCK relé Mega | NEURČENÉ | PLÁNOVANÉ |
 | heartbeat Uno→Mega | NEURČENÉ | PLÁNOVANÉ |
@@ -127,10 +127,11 @@ Napájanie Una je fyzicky vedené zo samostatného LM2596 nastaveného na 7,5 V.
 | D2 | 1-Wire UNO_T1/UNO_T2/UNO_T3/UNO_TBOX | všetky štyri pevné ROM aj merania fyzicky potvrdené `OK`; jeden spoločný fyzicky osadený pull-up 4,7 kΩ; napätie hornej strany pull-upu NEOVERENÉ |
 | D3 | HY-SRF05 TRIG | testované |
 | D4 | HY-SRF05 ECHO | testované |
-| D7 | Mega D16/TX2 → sériový 10 kΩ → Uno RX | priame TTL, neinvertovaný SoftwareSerial, 38400 Bd; V4 MASTER rámec 24 B; spoločná GND; bez PC817 a bez spoločného +5 V |
-| D8 | Uno TX → sériový 10 kΩ → Mega D17/RX2 | priame TTL, neinvertovaný SoftwareSerial, 38400 Bd; V4 REPLY rámec 22 B s UNO_T3; spoločná GND; bez PC817 a bez spoločného +5 V |
+| D7 | Mega D16/TX2 → sériový 10 kΩ → Uno RX | priame TTL, neinvertovaný SoftwareSerial, 38400 Bd; V5 MASTER rámec 24 B; spoločná GND; bez PC817 a bez spoločného +5 V |
+| D8 | Uno TX → sériový 10 kΩ → Mega D17/RX2 | priame TTL, neinvertovaný SoftwareSerial, 38400 Bd; V5 REPLY rámec 22 B s UNO_T3 a XKC flagom; spoločná GND; bez PC817 a bez spoločného +5 V |
 | D9 | H/L relé modul #1 | FYZICKY OVERENÉ RIADENIE; 5 V, spoločná systémová GND/DC−; `HIGH → aktívne/COM–NO`, `LOW → neaktívne/COM–NC`; strata napájania → COM–NC |
 | A0 | UNO_TOTAL_STOP | FYZICKY PRIPOJENÉ A COMMISSIONING TESTOM OVERENÉ; `HIGH → relé zopnuté/COM–NO`, `LOW → relé uvoľnené/COM–NC`; napájanie modulu z Uno power domain |
+| A2 | UNO_XKC | FYZICKY PRIPOJENÉ cez druhý samostatný kanál HY-M154/PC817; `INPUT_PULLUP`; `LOW = WATER`, `HIGH = LOW_WATER / DRY / otvorená signálová cesta`; commissioning-only bez safety autority |
 | D10 | MicroSD CS | testované, `UNO_LOG.CSV` |
 | D11 | MicroSD MOSI | testované |
 | D12 | MicroSD MISO | testované |
@@ -155,22 +156,22 @@ Lokálna softvérová migrácia je implementovaná a fyzicky potvrdená: meranie
 | D4 | IN | Uno HY-SRF05 ECHO | bez pulseIn |
 | D5 | — | voľné | bývalá ESP-01S linka fyzicky odstránená |
 | D6 | — | voľné | bývalá ESP-01S linka fyzicky odstránená |
-| D7 | IN | Uno RX z Mega D16/TX2 cez sériový 10 kΩ | jediná SoftwareSerial linka, neinvertovaná logika, 38400 Bd; binárny výsledkový rámec V4 24 B |
-| D8 | OUT | Uno TX cez sériový 10 kΩ do Mega D17/RX2 | neinvertovaný TTL UART 38400 Bd; binárny lokálny rámec V4 22 B s UNO_T3 |
+| D7 | IN | Uno RX z Mega D16/TX2 cez sériový 10 kΩ | jediná SoftwareSerial linka, neinvertovaná logika, 38400 Bd; binárny výsledkový rámec V5 24 B |
+| D8 | OUT | Uno TX cez sériový 10 kΩ do Mega D17/RX2 | neinvertovaný TTL UART 38400 Bd; binárny lokálny rámec V5 22 B s UNO_T3 a XKC flagom |
 | D9 | OUT | UNO_AGREEMENT – H/L relé modul #1 | boot/reset LOW; platná linka + čerstvé dáta + nekritický stav Mega počas 180 s → HIGH; link/stale timeout 10 s alebo kritický stav → okamžite LOW a timer od nuly; Mega DEGRADED samo neblokuje; nie finálna BASIC/safety logika |
 | D10 | OUT | Uno MicroSD CS | SPI, `UNO_LOG.CSV` každých 60 s |
 | D11 | OUT | Uno MicroSD MOSI | SPI |
 | D12 | IN | Uno MicroSD MISO | SPI |
 | D13 | OUT | Uno MicroSD SCK | SPI |
 | A0 | OUT | UNO_TOTAL_STOP | produkčný boot/reset stav `LOW / COM–NC`; automatický commissioning impulz odstránený; fyzicky potvrdené správne ovládanie Uno TOTAL STOP modulu; `HIGH` je rezervované iba pre budúci vedomý TOTAL STOP zásah, automatické fault podmienky zatiaľ NEIMPLEMENTOVANÉ |
+| A2 | IN_PULLUP | UNO_XKC | cez vlastný HY-M154/PC817 kanál; `LOW = WATER`, `HIGH = LOW_WATER / DRY / otvorená cesta`; iba commissioning diagnostika, bez zásahu do TOTAL STOP, `aktualnyUnoStav()`, agreement alebo BASIC |
 
 ### REZERVOVANÉ/NAVRHOVANÉ
 
-Všetky piny ostávajú NEURČENÉ:
+Ostatné budúce piny ostávajú NEURČENÉ:
 
 | Funkcia | Pin | Stav |
 |---|---|---|
-| XKC-Y25 vstup Uno | NEURČENÉ | iba dátová kostra |
 | RESET/ACK | NEURČENÉ | iba dátová kostra |
 | heartbeat Mega→Uno | NEURČENÉ | iba dátová kostra |
 | heartbeat Uno→Mega | NEURČENÉ | iba dátová kostra |
@@ -211,7 +212,7 @@ ESP priamo neovláda relé.
 
 | Signál | Zdroj/cieľ | Elektrická logika |
 |---|---|---|
-| XKC LOW WATER | jeden XKC → pevný MODE → dve optočlenové cesty → Mega a Uno | jeden spoločný sensing element; úrovne, polarita, vstupný prúd, GND jumpery a MCU piny sa musia overiť |
+| XKC LOW WATER | jeden XKC → dve samostatné optočlenové cesty → Mega D30 a Uno A2 | FYZICKY PRIPOJENÉ; oba vstupy `INPUT_PULLUP`; `LOW = WATER`, `HIGH = LOW_WATER / DRY / otvorená cesta`; zatiaľ commissioning-only bez safety autority |
 | SMART agreement Mega | Mega → jeho povoľovacie relé | aktívne držanie povoľuje SMART |
 | SMART agreement Uno | Uno → jeho povoľovacie relé | aktívne držanie povoľuje SMART |
 | FIL_BLOCK Mega/Uno | každý MCU → vlastné sériové relé | neaktívna cievka povoľuje, aktívna blokuje |
@@ -219,12 +220,12 @@ ESP priamo neovláda relé.
 | MEGA_TOTAL_STOP | Mega D32 → samostatný H/L 5 V energize-to-trip modul | FYZICKY PRIPOJENÉ/COMMISSIONING PASS; napájanie z Mega power domain; `LOW → COM–NC`, `HIGH → COM–NO`. Kontakt COM–NC je fyzicky zapojený v spoločnej sériovej motorovej ceste pred WAGO rozdelením do BASIC_R1/R2; automatické fault podmienky neimplementované. |
 | UNO_TOTAL_STOP | Uno A0 → samostatný H/L 5 V energize-to-trip modul | FYZICKY PRIPOJENÉ/COMMISSIONING PASS; napájanie z Uno power domain; `LOW → COM–NC`, `HIGH → COM–NO`. Kontakt COM–NC je fyzicky zapojený v spoločnej sériovej motorovej ceste pred WAGO rozdelením do BASIC_R1/R2; automatické fault podmienky neimplementované. |
 | TOTAL STOP spoločná kontaktná cesta | prívod → 2× TOTAL STOP COM–NC → WAGO → BASIC_R1/BASIC_R2 | FYZICKY ZAPOJENÉ; D32 a A0 commissioning test potvrdil ovládanie správnych reléových modulov; automatická TOTAL STOP fault logika zatiaľ neimplementovaná |
-| XKC LOW WATER optická cesta Mega | XKC → HY-M154/PC817 CH1 → Mega | cieľový koncept; pin, polarita, vstupná topológia a odstránenie GND jumpera TBD do fyzického overenia |
-| XKC LOW WATER optická cesta Uno | XKC → HY-M154/PC817 CH2 → Uno | cieľový koncept; pin, polarita, vstupná topológia a odstránenie GND jumpera TBD do fyzického overenia |
+| XKC LOW WATER optická cesta Mega | XKC → samostatný HY-M154/PC817 kanál → Mega D30 | FYZICKY PRIPOJENÉ; `INPUT_PULLUP`; `LOW = WATER`, `HIGH = LOW_WATER / DRY / otvorená cesta`; monitor/commissioning-only |
+| XKC LOW WATER optická cesta Uno | XKC → druhý samostatný HY-M154/PC817 kanál → Uno A2 | FYZICKY PRIPOJENÉ; `INPUT_PULLUP`; `LOW = WATER`, `HIGH = LOW_WATER / DRY / otvorená cesta`; monitor/commissioning-only |
 | RESET Mega/Uno cez BC547 | zdravá doska → BC547 → RESET druhej dosky | piny, rezistory, polarita a impulz TBD; BC547 low-side/open-collector-like, nie galvanické oddelenie |
 | HISTORICKÉ UART galvanické oddelenie | Mega D16/TX2 → PC817 → Uno D7/RX; Uno D8/TX → PC817 → Mega D17/RX2 | historický stav 9600 Bd/inverse; PC817 už nie sú v dátovej ceste. Aktuálny stav je priame TTL 38400 Bd cez 10 kΩ v každom smere, spoločná GND a bez spoločného +5 V. |
 | W1209_FACKOVAC / W1209_RESET_SUPERVISION | Mega D33 → samostatný H/L 5 V modul v 12 V napájaní W1209 | FYZICKY PRIPOJENÉ/COMMISSIONING PASS; napájanie z Mega power domain; `LOW → COM–NC`, `HIGH → COM–NO`; kontaktná cesta `24 V → buck 12 V → BASIC_R3 COM–NC → fackovač COM–NC → W1209` fyzicky zapojená. Automatické fault podmienky, power-cycle čas a recovery zostávajú NEIMPLEMENTOVANÉ/TBD; mŕtvy Mega ponechá NC napájanie. |
 | W1209 230 V kontaktná cesta | BASIC_R1 NC → COM1 → K1 → COM2 → K2 | vstup/K1→COM2/K2 FYZICKY ZAPOJENÉ; finálny výstup za K2 NEZAPOJENÝ, cieľ neurčený |
 | T_FILL / DOPÚŠŤANIE_T | budúci snímač teploty prívodnej vody pred zmiešaním s bazénom | PLÁNOVANÉ; typ senzora, fyzický kus, ROM, MCU vlastník, zbernica a pin NEURČENÉ; iba diagnostika, nie safety |
 
-Pred montážou treba potvrdiť presné NO/NC svorky, ovládacie stupne, úrovne XKC a spoločnú zem alebo izoláciu.
+XKC commissioning musí ešte fyzicky potvrdiť čítanie oboch MCU ciest v stave WATER aj LOW_WATER. Až samostatne schválená neskoršia etapa smie pridať safety autoritu.

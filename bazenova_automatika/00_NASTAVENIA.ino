@@ -17,11 +17,10 @@ enum ZdrojHodnoty : byte {
 };
 
 // Rozdiel T3 - T1 potrebný na zapnutie soláru
-// Heartbeat externeho watchdogu
-extern const int HEARTBEAT_PIN = 44;
 
-// Prva fyzicka implementacia SMART agreement. HIGH = COM-NO, LOW = COM-NC.
-const byte MEGA_HL_RELAY_2_PIN = 31;
+// Fyzicka watchdog/povolovacia vetva riadena MEGA_AGREEMENT logikou.
+// HIGH = COM-NO, LOW = COM-NC.
+const byte MEGA_AGREEMENT_WATCHDOG_PIN = 31;
 
 const float SOLAR_ZAP = 2.0;
 

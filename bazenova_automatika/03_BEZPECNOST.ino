@@ -33,6 +33,7 @@ extern bool UNO_T1_SUSPECT;
 extern bool MEGA_T2_SUSPECT;
 extern bool UNO_T2_SUSPECT;
 extern bool unoLinkStavOk;
+extern bool XKC_CONFLICT;
 bool megaSmartPodmienkyOk();
 
 // MODE_STOP je sucastou autoritativnej architektury, ale ziadna konkretna
@@ -367,6 +368,17 @@ void bezpecnost() {
   else Serial.print("--");
   Serial.print("ms LINK=");
   Serial.println(unoLinkStavOk ? "OK" : "CHYBA");
+
+  Serial.print(F("MEGA_XKC="));
+  Serial.print(megaXkcLowWater ? F("LOW_WATER") : F("WATER"));
+  Serial.print(F(" UNO_XKC_REMOTE="));
+  if (unoRemoteXkcPlatny())
+    Serial.print(unoRemoteXkcLowWater() ? F("LOW_WATER") : F("WATER"));
+  else
+    Serial.print(F("STALE"));
+  Serial.print(F(" XKC_CONFLICT="));
+  if (!unoRemoteXkcPlatny()) Serial.println(F("NA"));
+  else Serial.println(XKC_CONFLICT ? F("YES") : F("NO"));
 
   Serial.print("REMOTE: UNO_T1=");
   if (unoRemoteT1Platna()) Serial.print(unoRemoteT1Hodnota());
