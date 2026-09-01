@@ -80,7 +80,7 @@ Pevná priorita resolvera je `STOP > BASIC > DEGRADED > SMART`:
 3. `MODE_DEGRADED`: vyhodnotí sa iba pri zachovanej SMART autorite oboch agreement a používa dnešný `systemDegradovany`. Jeho aktuálne zdroje sú neprimárny pool zdroj, lokálna chyba T2, lokálna chyba T3, chyba MEGA_TBOX a remote stale; remote stale však vďaka vyššej priorite resolvera vytvorí BASIC. Fyzicky potvrdený príklad je `MEGA_T3_CHYBA + čerstvý UNO_T3_REMOTE_FALLBACK + oba agreement ON → MODE_DEGRADED`.
 4. `MODE_SMART`: obe agreement sú potvrdené, linka a remote údaje sú čerstvé a `systemDegradovany=false`.
 
-Uno neposudzuje druhú SMART analytiku. Vo V4 Uno→Mega rámci používa dovtedy rezervovaný bajt 20: bit 0 znamená `UNO_AGREEMENT_ON`; bity 1–7 musia byť nulové. Mega považuje vzdialený agreement za ON iba z čerstvého validného rámca. Veľkosti 22/24 B, V4, CRC-8/ATM, sekvencie, MASTER→REPLY, 9600 Bd, 500 ms reply okno, 10 s timeouty a 180 s stabilizácia zostali nezmenené.
+Uno neposudzuje druhú SMART analytiku. Vo V4 Uno→Mega rámci používa dovtedy rezervovaný bajt 20: bit 0 znamená `UNO_AGREEMENT_ON`; bity 1–7 musia byť nulové. Mega považuje vzdialený agreement za ON iba z čerstvého validného rámca. Veľkosti 22/24 B, V4, CRC-8/ATM, sekvencie, MASTER→REPLY, 500 ms reply okno, 10 s timeouty a 180 s stabilizácia zostávajú nezmenené; aktuálna fyzická linka používa 38400 Bd.
 
 Staré `megaStav 0/1/2` a `aktualnyUnoStav() 0/1/2` zostávajú dočasne kompatibilnou health/agreement telemetriou. Nie sú druhou autoritou `SYSTEM_MODE`. Serial Mega zobrazuje `SYSTEM_MODE=... REASON=...` v 10 s diagnostike a okamžitý event iba pri zmene režimu.
 
@@ -441,39 +441,26 @@ Uno už používa korektnú časovanú asynchrónnu pipeline: jeden broadcast ST
 
 Fyzický A/B test potvrdil časovú kolíziu pravidelnej UNO OneWire/DS18B20 komunikácie so SoftwareSerial RX V3. V pôvodnom približne sekundovom režime vzniklo na Uno `CRC_FAIL=50`, `FRAME_INVALID=17`, `SEQ_GAP=64` a Mega zaznamenala `REPLY_TIMEOUT_COUNT=88`. Po diagnostickom zmrazení periodickej OneWire komunikácie prešlo minimálne 2 378 rámcov s nulovými `CRC_FAIL`, `FRAME_INVALID`, `SEQ_GAP`, `LINK_TIMEOUT` aj Mega `REPLY_TIMEOUT_COUNT`. Diagnostický freeze bol po teste odstránený a priebežné asynchrónne meranie aj recovery boli obnovené. Aktuálny prevádzkový interval UNO DS18B20 je 5 300 ms namiesto približne 1 s. Hodnota 5 300 ms sa zámerne vyhýba presnému pomeru 5:1 voči približne sekundovému Mega V3 requestu, aby sa vzájomná fáza priebežne posúvala a nevznikal stabilný opakovaný súbeh. Toto opatrenie neodstraňuje fyzikálnu príčinu krátkych interrupt-off úsekov OneWire, iba výrazne znižuje pravdepodobnosť ich prekrytia s Mega→Uno SoftwareSerial RX. OneWire recovery interval zostáva samostatne 5 000 ms a SMART link/stale timeout 10 s poskytuje rezervu proti jednotlivým strateným rámcom.
 
-Mega↔Uno UART je fyzicky overená obojsmerná diagnostická/komunikačná linka pri 9600 Bd: Mega Serial2 D16/TX2 → Uno D7/SoftwareSerial RX a Uno D8/SoftwareSerial TX → Mega D17/RX2. Od 22. 8. 2026 obe dosky fyzicky bežia s binárnym protokolom V4 a pevnými rámcami 22 B Uno→Mega a 24 B Mega→Uno. Každý rámec obsahuje magic `BA 5E`, verziu, typ, pevnú dĺžku, 16-bitovú sekvenciu a CRC-8/ATM. Uno fyzicky prenáša lokálne merania a validity vrátane UNO_T3 a Mega ich korektne prijíma; Mega vracia hotové výsledky a RTC dátum/čas. Link timeout a stale limit zostávajú 10 s. UART stále nie je finálnym nezávislým safety heartbeat prvkom.
+Mega↔Uno UART je aktuálne priama neinvertovaná TTL diagnostická/komunikačná linka pri 38400 Bd: Mega Serial2 D16/TX2 → sériový 10 kΩ → Uno D7/SoftwareSerial RX a Uno D8/SoftwareSerial TX → sériový 10 kΩ → Mega D17/RX2. Dosky majú spoločnú GND, nemajú medzi sebou prepojené +5 V a PC817 nie sú v dátovej ceste. Od 22. 8. 2026 obe dosky fyzicky bežia s binárnym protokolom V4 a pevnými rámcami 22 B Uno→Mega a 24 B Mega→Uno. Každý rámec obsahuje magic `BA 5E`, verziu, typ, pevnú dĺžku, 16-bitovú sekvenciu a CRC-8/ATM. Uno fyzicky prenáša lokálne merania a validity vrátane UNO_T3 a Mega ich korektne prijíma; Mega vracia hotové výsledky a RTC dátum/čas. Link timeout a stale limit zostávajú 10 s. UART stále nie je finálnym nezávislým safety heartbeat prvkom.
 
 Aktuálne schválené a fyzicky overené časovanie zostáva **MASTER→REPLY**. Mega približne raz za sekundu odošle svoj 24 B rámec; Uno ho úplne prijme a overí a až potom odošle 22 B V4 odpoveď. Mega počas neblokujúceho 500 ms okna nezačína ďalší rámec. CRC algoritmus, sekvencie, 10 s link/stale timeout a 180 s agreement stabilizácia zostávajú zachované. Bench test V4 z 22. 8. 2026 prebehol bez `CRC_FAIL`, `FRAME_INVALID`, `LINK_TIMEOUT` a `SEQ_GAP`.
 
-### UART phantom/backfeed pri strate napájania
+### Mega↔Uno UART – aktuálna fyzická vrstva
 
-**STATUS: PHYSICALLY VERIFIED / PASS – 23. 8. 2026.** Mega↔Uno UART je fyzicky prevádzkovaný cez dva samostatné optokanály HY-M154/PC817:
+**AKTUÁLNY STAV:** priame neinvertované TTL UART prepojenie bez PC817 v dátovej ceste:
 
-- Mega D16/TX2 → PC817 → Uno D7/SoftwareSerial RX;
-- Uno D8/SoftwareSerial TX → PC817 → Mega D17/RX2;
-- použité kanály majú oddelenú vstupnú a výstupnú GND;
-- na každej prijímacej strane je pull-up 4,7 kΩ na lokálnych 5 V danej dosky.
+- Mega D16/TX2 → sériový 10 kΩ → Uno D7/SoftwareSerial RX;
+- Uno D8/SoftwareSerial TX → sériový 10 kΩ → Mega D17/RX2;
+- Mega GND ↔ Uno GND;
+- +5 V medzi doskami nie je prepojené;
+- Uno používa `SoftwareSerial megaLinkSerial(MEGA_LINK_RX_PIN, MEGA_LINK_TX_PIN, false);`;
+- obe strany používajú 38400 Bd.
 
-PC817 invertuje UART logiku. Na Uno je preto fyzicky overená inverse konfigurácia `SoftwareSerial megaLinkSerial(MEGA_LINK_RX_PIN, MEGA_LINK_TX_PIN, true);`, ktorá invertuje RX aj TX. Mega Serial2 zostáva normálny bez inverse režimu. Pokojová úroveň inverse TX D8 pred optočlenom je LOW a Mega za PC817 dostáva normálny UART idle HIGH.
+Sériový odpor 10 kΩ v každom dátovom smere je zámerná ochrana proti phantom/backfeed napájaniu pri vypnutej druhej doske. Nejde o galvanické oddelenie; spoločná GND je súčasťou aktuálneho priameho TTL zapojenia.
 
-Bez zmeny zostali binárny protokol V4, 9600 Bd, MASTER→REPLY, rámce 22 B Uno→Mega a 24 B Mega→Uno, CRC-8/ATM, sequence kontrola, 500 ms reply window, link/stale timeout 10 s, 180 s SMART agreement stabilizácia a Mega produkčný kód.
+Komunikačná a safety vrstva sa zmenou fyzickej cesty ani baudrate nemení: zostáva V4, MASTER→REPLY, 24 B Mega→Uno, 22 B Uno→Mega, CRC-8/ATM, 16-bitová sekvencia, 500 ms reply okno, 10 s link/stale timeout a 180 s agreement stabilizácia. TOTAL STOP a BASIC/SMART resolver zostávajú oddelené od tejto dokumentačnej opravy.
 
-Pri odpojení USB Una bez odpojenia jeho vlastnej napájacej vetvy patologický stav nevznikol. Pri úplnom odpojení vlastného napájania Una aj USB, zatiaľ čo Mega zostala napájaná, však Uno nezostalo úplne elektricky mŕtve. Cez existujúcu fyzickú UART cestu vzniklo nežiaduce phantom/backfeed napájanie a bol pozorovaný nestabilný medzistav Una s periodickým cvakaním watchdog/agreement relé. Takýto stav sa nesmie pripustiť do budúcej motorovej BASIC vrstvy a väzby na BASIC_R1–R4.
-
-Pôvodná nežiaduca UART napájacia cesta bola odstránená optickým oddelením oboch smerov. Fyzický test `Mega ON / Uno bez vlastného napájania` po oddelení nameral na 5 V vetve Una `0,000 V`; pôvodné čiastočné ožitie Una a periodické cvakanie agreement/watchdog relé sa už neobjavilo. Ide o fyzicky potvrdené odstránenie UART phantom/backfeedu.
-
-Pôvodnou potvrdenou triedou problému bolo nežiaduce napájanie nenapájanej dosky cez fyzickú UART cestu. Presná vnútorná cesta cez ochranné/ESD štruktúry MCU a presný mechanizmus každého cvaknutia neboli rozoberané; pre aktuálny stav to už nie je otvorená funkčná chyba, pretože fyzická cesta je prerušená optickým oddelením.
-
-Na optické oddelenie UART sa používa druhý 4-kanálový HY-M154/PC817: dva kanály sú použité a dva zostávajú voľné. Prvý HY-M154 zostáva určený pre plán XKC LOW WATER. Výstupná strana každého použitého UART optokanála je viazaná na napájaciu doménu prijímajúceho Arduina, takže vypnutá doska sa cez UART vodič nenapája.
-
-Fyzický V4 test na Mega po štarte zaznamenal krátky `UNO_LINK_CHYBA`, následne `RECOVERY: UNO_LINK_OK`, `SYSTEM=OK`, priebeh `SMART_STABLE` od 0 do 180 s, `RECOVERY: MEGA_AGREEMENT=ON` a `SMART_STABLE=READY`. Počas testu zostali `CRC_FAIL=0`, `FRAME_INVALID=0`, `LINK_TIMEOUT_COUNT=0` a `SEQ_GAP_COUNT=0`. Jeden `REPLY_TIMEOUT_COUNT` sa ďalej nezvyšoval; linka zostala OK a agreement nebol ovplyvnený.
-
-Na Uno boli potvrdené `LINK_OK`, `MEGA_DATA_OK`, `UNO_SMART_STABLE=START` a po stabilizácii `RECOVERY: UNO_AGREEMENT=ON`, `AGR=ON`; SD zostalo OK. Počas testu vznikol jeden CRC a jeden sequence GAP, pri `INV=0` a `TO=0`; čítače sa ďalej nezvyšovali, linka sa nerozpadla a agreement zostal aktívny. Ojedinelý CRC/GAP a Mega reply timeout sú kompatibilné so známou časovou kolíziou Uno SoftwareSerial↔DS18B20 a boli správne zachytené existujúcou CRC/sequence vrstvou. Nie sú dôvodom meniť V4, baudrate, timeouty, 5 300 ms Uno DS interval ani Mega kód.
-
-UART izolácia HY-M154/PC817 je týmto uzavretá ako `PHYSICALLY VERIFIED / PASS`.
-
-Tento výsledok treba odlišovať od samostatného residual backfeedu 16R dosky popísaného nižšie. Optické oddelenie rieši UART cestu; nemení elektrické vlastnosti vstupov 16R reléovej dosky.
-
+**HISTORICKÝ / NEAKTUÁLNY STAV:** zapojenie cez dva kanály HY-M154/PC817, oddelené GND, lokálne 4,7 kΩ pull-upy, 9600 Bd a inverse `SoftwareSerial(..., true)` bolo predchádzajúcim commissioning riešením. PC817 testy a vtedajšie výsledky zostávajú historickým záznamom, ale nesmú sa používať ako opis dnešnej kabeláže alebo konfigurácie.
 ### 16R relay board – residual backfeed do Mega
 
 **STATUS: KNOWN / PHYSICALLY CONFIRMED / FUNCTIONALLY ISOLATED / ACCEPTED – 23. 8. 2026.** Použitá je [16-kanálová opticky oddelená 5 V reléová doska](https://www.drotik-elektro.sk/arduino-platforma/1278-modul-16-rele-s-optickym-oddelenim-5v-pre-arduino.html).
@@ -497,7 +484,7 @@ Residual backfeed sa v aktuálnej zostave ďalej neodstraňuje. Ďalšie galvani
 
 Tvrdé rozlíšenie:
 
-- `UART PHANTOM/BACKFEED`: spôsoboval čiastočné ožitie Una a cvakanie relé; bol neakceptovateľný a je odstránený PC817 izoláciou;
+- `UART PHANTOM/BACKFEED` – HISTORICKÉ: spôsoboval čiastočné ožitie Una a cvakanie relé; dočasne bol odstránený PC817 izoláciou. Aktuálne PC817 nie sú v UART dátovej ceste a ochranu proti backfeedu tvoria sériové 10 kΩ odpory bez spoločného +5 V;
 - `16R RESIDUAL BACKFEED DO MEGA`: približne 1,58 V, pri mŕtvej Mega zopína R5–R16, ale jeho funkčný účinok je nadradene izolovaný; stav je akceptovaný bez ďalšej prestavby.
 
 Pri commissioning teste štvorice UNO DS18B20 zostala V3 linka `OK`: `CRC_FAIL=1`, `FRAME_INVALID=0`, `LINK_TIMEOUT=0`, `SEQ_GAP=2`; po štartovacích udalostiach sa čítače ďalej nezvyšovali. Ojedinelé CRC/sequence straty sú kompatibilné so známym časovacím javom OneWire↔SoftwareSerial, nevyvolali link timeout ani zrušenie agreement. Stabilizácia 180 s úspešne skončila a `UNO_AGREEMENT=ON`. Tento výsledok nie je dôvodom meniť 5 300 ms OneWire interval, V3 časovanie ani komunikačnú architektúru.
@@ -543,7 +530,7 @@ ESP prijíma telemetriu Mega cez UART 115200 baud, poskytuje lokálne web HMI a 
 ### Istota podkladov
 
 - **POTVRDENÉ PRE IOT382:** identita dosky a vyššie uvedené technické parametre podľa [Techfun](https://techfun.sk/produkt/arduino-mega-wifi/).
-- **AKTUÁLNE POTVRDENÉ KÓDOM:** Mega USB `Serial0` aj Uno hardvérový USB `Serial` používajú 115200 Bd. Mega↔Uno V4 zostáva oddelene na Mega `Serial2` D16/D17 ↔ Uno SoftwareSerial D7/D8 pri 9600 Bd. Mega `Serial3` zostáva na 115200 Bd; na ATmega2560 zodpovedá D14/TX3 a D15/RX3.
+- **AKTUÁLNE POTVRDENÉ KÓDOM:** Mega USB `Serial0` aj Uno hardvérový USB `Serial` používajú 115200 Bd. Mega↔Uno V4 zostáva oddelene na Mega `Serial2` D16/D17 ↔ Uno neinvertovaný SoftwareSerial D7/D8 pri 38400 Bd. Mega `Serial3` zostáva na 115200 Bd; na ATmega2560 zodpovedá D14/TX3 a D15/RX3.
 - **REFERENČNÉ, FYZICKY NEOVERENÉ NA NAŠOM KUSE:** presná DIP tabuľka nižšie pochádza z dokumentácie konštrukčne zhodnej rodiny Mega+WiFi R3/RobotDyn. Techfun na produktovej stránke presnú revíziu DPS, schému ani tabuľku jednotlivých prepínačov nezverejňuje. Zhodný vzhľad a funkčný princíp nie sú dostatočný dôkaz elektrickej identity; režimy sa preto nesmú označiť ako fyzicky potvrdené bez testu našej IOT382.
 
 Referenčné podklady: [RobotDyn Mega+WiFi R3](https://robotdyn.com/mega-wifi-r3-atmega2560-esp8266-flash-32mb-usb-ttl-ch340g-micro-usb), [referenčná schéma](https://content.instructables.com/F8K/SN06/KRRSAYXR/F8KSN06KRRSAYXR.pdf) a [diskusia Arduino Forum k súčasnému USB Mega + Serial3 ESP režimu](https://forum.arduino.cc/t/connecting-and-working-with-mega-wifi-r3-atmega2560-esp8266-32mb-memory/476356?page=3).
@@ -581,7 +568,7 @@ Pri internom spojení sa fyzicky krížia smery TX→RX. Označenie D14/TX3 a D1
 - Uno je jednoduchá nezávislá MONITOR/BASIC/watchdog jednotka a diagnostická čierna skrinka. Periodické a eventové záznamy sú oddelené do denných FAT 8.3 súborov `LYYMMDD.CSV` a `EYYMMDD.CSV`. Eventový súbor zapisuje iba zmeny lokálnych validít, linky, dostupnosti výsledku Mega, prijatých výsledných diagnostických bitov a časového stavu, nie každý cyklus.
 - Uno SD vrstva je fyzicky otestovaná. Mega SD vrstva zostáva plánovaná do fyzického testu druhého modulu a karty.
 - RTC DS3231 ostáva hlavný zdroj dátumu a času na Mega. Mega prenáša platnosť RTC, sekundy od polnoci a binárne polia rok `00–99`, mesiac a deň. Uno vedie lokálny softvérový dátum/čas cez `millis()`, pri prvom platnom rámci a následne približne raz za hodinu synchronizuje základ; rozdiel dátumu po obnove linky vyvolá okamžitú synchronizáciu. Pri strate UART pokračuje lokálny čas aj kalendár vrátane prechodu cez polnoc. Po resete bez platného RTC dátumu Uno nevymýšľa dátum a používa súbory `UNDTLOG.CSV` a `UNDTEVT.CSV`; po prijatí platného dátumu ďalšie zápisy automaticky smerujú do príslušných denných súborov.
-- Diagnostická fyzická vrstva Mega↔Uno je overená na Mega Serial2 D16/D17 a Uno D7/D8 pri 9600 Bd; nie je tým schválený safety heartbeat ani SMART/BASIC protokol.
+- Diagnostická fyzická vrstva Mega↔Uno používa priame TTL prepojenie Mega Serial2 D16/D17 a Uno D7/D8 pri 38400 Bd cez sériový 10 kΩ v každom smere; nie je tým schválený safety heartbeat ani SMART/BASIC protokol.
 
 ## Senzorová redundancia a krížová diagnostika
 
@@ -781,7 +768,7 @@ Jeden spoločný fyzický XKC-Y25-NPN sa má čítať dvoma nezávislými optoč
 
 MODE vodič sa nebude dynamicky ovládať Arduinom; význam `LOW WATER/WATER PRESENT` sa stanoví pevne hardvérovo. Finálna voľba NO/NC správania, presná polarita a zapojenie sa musia potvrdiť pri fyzickej montáži. XKC používa sinking/open-collector NPN výstup; pred zapojením sa musí fyzicky overiť vstupná topológia, polarita a potrebný prúd konkrétneho HY-M154/PC817 modulu.
 
-Pre budúci XKC zostáva určený prvý 4-kanálový PC817 modul, pracov­ne `CH1 → Mega`, `CH2 → Uno`, `CH3–CH4 → lokálna rezerva`; jeho konkrétna XKC polarita a zapojenie zostávajú predmetom samostatného fyzického testu. Druhý 4-kanálový HY-M154 už nie je rezervný: dva jeho kanály sú fyzicky použité a overené pre opticky oddelený Mega↔Uno UART, dva zostávajú voľné.
+Pre budúci XKC zostáva určený prvý 4-kanálový PC817 modul, pracovne `CH1 → Mega`, `CH2 → Uno`, `CH3–CH4 → lokálna rezerva`; jeho konkrétna XKC polarita a zapojenie zostávajú predmetom samostatného fyzického testu. Historické použitie druhého HY-M154 pre UART je ukončené; PC817 už nie sú v aktuálnej Mega↔Uno dátovej ceste. Ďalšie využitie jeho kanálov sa týmto dokumentom neurčuje.
 
 Dve optočlenové cesty poskytujú nezávislé čítanie a interpretáciu procesormi, ale nevytvárajú druhý fyzický snímač: XKC zostáva spoločným sensing elementom. Dôveryhodne potvrdený stav NO WATER má právo vyvolať TOTAL STOP jedinou doskou bez čakania na druhú dosku alebo agreement. Konkrétne vstupné piny oboch MCU zostávajú `TBD`.
 
@@ -1034,7 +1021,7 @@ Infračervený snímač plameňa je určený na kontrolu prítomnosti plameňa h
 
 - Heartbeat Mega→Uno a Uno→Mega budú samostatné fyzické signály.
 - Budúci fyzický RESET/ACK nesmie zmazať aktívnu príčinu. Resetovanie bude obmedzené, po vyčerpaní pokusov vznikne `RESET_LOCKOUT` a systém zostane v BASIC, ak nie je aktívna samostatná kritická fyzická podmienka vyžadujúca STOP.
-- Diagnostická komunikácia Mega↔Uno je fyzicky overená na Serial2 D16/D17 ↔ Uno D7/D8 pri 9600 Bd. Safety heartbeat a SMART/BASIC dohoda zostávajú samostatná budúca vrstva.
+- Diagnostická komunikácia Mega↔Uno používa priame TTL Serial2 D16/D17 ↔ Uno D7/D8 pri 38400 Bd, neinvertovane a cez sériový 10 kΩ v každom smere. Safety heartbeat a SMART/BASIC dohoda zostávajú samostatná budúca vrstva.
 - Výpadok jedného senzora nesmie zastaviť ostatné merania.
 - Budúca architektúra nepoužíva blokujúce čakanie.
 
@@ -1117,12 +1104,12 @@ Zatiaľ nie sú potvrdené a nesmú sa domýšľať:
 ## Otvorené rozhodnutia
 
 - všetky nové piny Mega/Uno;
-- budúca samostatná safety heartbeat vrstva; fyzická Mega↔Uno UART vrstva cez PC817 je uzavretá ako `PHYSICALLY VERIFIED / PASS`;
+- budúca samostatná safety heartbeat vrstva; aktuálna Mega↔Uno UART vrstva je priame TTL 38400 Bd cez dva sériové 10 kΩ odpory, spoločnú GND a bez spoločného +5 V;
 - presné svorky, ovládacie stupne a polarita relé/XKC;
 - autonómna BASIC logika a podmienky BASIC_R3/R4;
 - prípadné budúce použitie skladovaného ESP-01S zostáva `NEURČENÉ`;
 - fyzický test druhej MicroSD vrstvy plánovanej pre Mega;
-- účel druhého novo kúpeného LM2596; pridelenie PC817 modulov je už určené: prvý pre budúci XKC, druhý fyzicky používa dva kanály pre UART a má dva voľné;
+- účel druhého novo kúpeného LM2596; prvý PC817 modul zostáva plánovaný pre budúci XKC, ďalšie použitie druhého modulu po odstránení z UART dátovej cesty je NEURČENÉ;
 - typ článkov, paralelné skupiny, model BMS, model 24 V step-up a poistky plánovanej UPS;
 - konkrétne elektrické zapojenie dopúšťania, typ COAX ventilu, riadiaci pin a diagnostika plavákov;
 - piny a poruchová logika infračerveného snímača plameňa.

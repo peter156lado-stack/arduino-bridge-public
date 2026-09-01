@@ -28,7 +28,7 @@ Ostatné jednotlivé Mega piny neboli v dodaných poznámkach výslovne označen
 | D0/D1 | UART | USB Serial0 diagnostika | 115200 Bd |
 | D2 | I/O | 1-Wire MEGA_T1–T4 + MEGA_TBOX | päť pevných ROM; MEGA_TBOX monitor-only |
 | D14/D15 | UART | Serial3 Mega↔onboard ESP | 115200 baud |
-| D16/D17 | UART | Serial2 Mega↔Uno cez HY-M154/PC817 | D16/TX2 → samostatný PC817 kanál → Uno D7/RX; Uno D8/TX → samostatný PC817 kanál → D17/RX2; 9600 Bd, MASTER→REPLY, V4 24 B/22 B; Mega Serial2 normálny, Uno inverse SoftwareSerial; oddelené GND a lokálny 4,7 kΩ pull-up na prijímacej strane; `PHYSICALLY VERIFIED / PASS` 23. 8. 2026 |
+| D16/D17 | UART | Serial2 Mega↔Uno – priame TTL | Mega D16/TX2 → sériový 10 kΩ → Uno D7/RX; Uno D8/TX → sériový 10 kΩ → Mega D17/RX2; 38400 Bd, MASTER→REPLY, V4 24 B/22 B; spoločná GND, bez PC817, bez prepojenia +5 V medzi doskami; Uno SoftwareSerial neinvertovaný |
 | D20/D21 | I²C | DS3231, AHT10, LCD 20×4 | SDA/SCL; LCD používa 4-stranovú rotáciu 5 s, poruchová stránka pri aktívnom existujúcom probléme 30 s |
 | D22 | OUT | MEGA_R9 | filtrácia, aktívne LOW |
 | D23 | OUT | MEGA_R10 | solár/chrlič, aktívne LOW |
@@ -127,8 +127,8 @@ Napájanie Una je fyzicky vedené zo samostatného LM2596 nastaveného na 7,5 V.
 | D2 | 1-Wire UNO_T1/UNO_T2/UNO_T3/UNO_TBOX | všetky štyri pevné ROM aj merania fyzicky potvrdené `OK`; jeden spoločný fyzicky osadený pull-up 4,7 kΩ; napätie hornej strany pull-upu NEOVERENÉ |
 | D3 | HY-SRF05 TRIG | testované |
 | D4 | HY-SRF05 ECHO | testované |
-| D7 | PC817 výstup z Mega D16/TX2 → Uno RX | inverse SoftwareSerial 9600 Bd; V4 MASTER rámec 24 B; lokálny 4,7 kΩ pull-up na Uno 5 V, oddelené GND; UART phantom odstránený; `PHYSICALLY VERIFIED / PASS` |
-| D8 | Uno inverse TX → PC817 → Mega D17/RX2 | inverse SoftwareSerial 9600 Bd; V4 REPLY rámec 22 B s UNO_T3; D8 idle LOW pred PC817, Mega RX idle HIGH za PC817; `PHYSICALLY VERIFIED / PASS` |
+| D7 | Mega D16/TX2 → sériový 10 kΩ → Uno RX | priame TTL, neinvertovaný SoftwareSerial, 38400 Bd; V4 MASTER rámec 24 B; spoločná GND; bez PC817 a bez spoločného +5 V |
+| D8 | Uno TX → sériový 10 kΩ → Mega D17/RX2 | priame TTL, neinvertovaný SoftwareSerial, 38400 Bd; V4 REPLY rámec 22 B s UNO_T3; spoločná GND; bez PC817 a bez spoločného +5 V |
 | D9 | H/L relé modul #1 | FYZICKY OVERENÉ RIADENIE; 5 V, spoločná systémová GND/DC−; `HIGH → aktívne/COM–NO`, `LOW → neaktívne/COM–NC`; strata napájania → COM–NC |
 | A0 | UNO_TOTAL_STOP | FYZICKY PRIPOJENÉ A COMMISSIONING TESTOM OVERENÉ; `HIGH → relé zopnuté/COM–NO`, `LOW → relé uvoľnené/COM–NC`; napájanie modulu z Uno power domain |
 | D10 | MicroSD CS | testované, `UNO_LOG.CSV` |
@@ -155,8 +155,8 @@ Lokálna softvérová migrácia je implementovaná a fyzicky potvrdená: meranie
 | D4 | IN | Uno HY-SRF05 ECHO | bez pulseIn |
 | D5 | — | voľné | bývalá ESP-01S linka fyzicky odstránená |
 | D6 | — | voľné | bývalá ESP-01S linka fyzicky odstránená |
-| D7 | IN | Uno RX z Mega D16/TX2 cez PC817 | jediná SoftwareSerial linka, inverse logic, 9600 Bd; binárny výsledkový rámec V4 24 B; lokálny 4,7 kΩ pull-up |
-| D8 | OUT | Uno inverse TX cez PC817 do Mega D17/RX2 | binárny lokálny rámec V4 22 B s UNO_T3; inverse TX idle LOW pred optočlenom |
+| D7 | IN | Uno RX z Mega D16/TX2 cez sériový 10 kΩ | jediná SoftwareSerial linka, neinvertovaná logika, 38400 Bd; binárny výsledkový rámec V4 24 B |
+| D8 | OUT | Uno TX cez sériový 10 kΩ do Mega D17/RX2 | neinvertovaný TTL UART 38400 Bd; binárny lokálny rámec V4 22 B s UNO_T3 |
 | D9 | OUT | UNO_AGREEMENT – H/L relé modul #1 | boot/reset LOW; platná linka + čerstvé dáta + nekritický stav Mega počas 180 s → HIGH; link/stale timeout 10 s alebo kritický stav → okamžite LOW a timer od nuly; Mega DEGRADED samo neblokuje; nie finálna BASIC/safety logika |
 | D10 | OUT | Uno MicroSD CS | SPI, `UNO_LOG.CSV` každých 60 s |
 | D11 | OUT | Uno MicroSD MOSI | SPI |
@@ -222,7 +222,7 @@ ESP priamo neovláda relé.
 | XKC LOW WATER optická cesta Mega | XKC → HY-M154/PC817 CH1 → Mega | cieľový koncept; pin, polarita, vstupná topológia a odstránenie GND jumpera TBD do fyzického overenia |
 | XKC LOW WATER optická cesta Uno | XKC → HY-M154/PC817 CH2 → Uno | cieľový koncept; pin, polarita, vstupná topológia a odstránenie GND jumpera TBD do fyzického overenia |
 | RESET Mega/Uno cez BC547 | zdravá doska → BC547 → RESET druhej dosky | piny, rezistory, polarita a impulz TBD; BC547 low-side/open-collector-like, nie galvanické oddelenie |
-| UART galvanické oddelenie | Mega D16/TX2 → PC817 → Uno D7/RX; Uno D8/TX → PC817 → Mega D17/RX2 | dva samostatné kanály druhého HY-M154, oddelené GND, lokálny 4,7 kΩ pull-up na každej prijímacej strane; Uno inverse logic, Mega normálny UART; `PHYSICALLY VERIFIED / PASS` 23. 8. 2026; prvý HY-M154 zostáva pre XKC |
+| HISTORICKÉ UART galvanické oddelenie | Mega D16/TX2 → PC817 → Uno D7/RX; Uno D8/TX → PC817 → Mega D17/RX2 | historický stav 9600 Bd/inverse; PC817 už nie sú v dátovej ceste. Aktuálny stav je priame TTL 38400 Bd cez 10 kΩ v každom smere, spoločná GND a bez spoločného +5 V. |
 | W1209_FACKOVAC / W1209_RESET_SUPERVISION | Mega D33 → samostatný H/L 5 V modul v 12 V napájaní W1209 | FYZICKY PRIPOJENÉ/COMMISSIONING PASS; napájanie z Mega power domain; `LOW → COM–NC`, `HIGH → COM–NO`; kontaktná cesta `24 V → buck 12 V → BASIC_R3 COM–NC → fackovač COM–NC → W1209` fyzicky zapojená. Automatické fault podmienky, power-cycle čas a recovery zostávajú NEIMPLEMENTOVANÉ/TBD; mŕtvy Mega ponechá NC napájanie. |
 | W1209 230 V kontaktná cesta | BASIC_R1 NC → COM1 → K1 → COM2 → K2 | vstup/K1→COM2/K2 FYZICKY ZAPOJENÉ; finálny výstup za K2 NEZAPOJENÝ, cieľ neurčený |
 | T_FILL / DOPÚŠŤANIE_T | budúci snímač teploty prívodnej vody pred zmiešaním s bazénom | PLÁNOVANÉ; typ senzora, fyzický kus, ROM, MCU vlastník, zbernica a pin NEURČENÉ; iba diagnostika, nie safety |
