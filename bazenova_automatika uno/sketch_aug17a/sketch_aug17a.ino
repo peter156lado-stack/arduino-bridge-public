@@ -497,6 +497,8 @@ void aktualizujMegaLinkTest() {
   }
   const bool megaDataCerstve = megaRemotePoslednyRamecMs != 0 &&
                                linkTerazMs - megaRemotePoslednyRamecMs < MEGA_REMOTE_TIMEOUT_MS;
+  // megaStav 1 je doveryhodny DEGRADED stav; agreement blokuje iba kriticka 2.
+  // SYSTEM_MODE zostava vylucne autoritou Mega.
   const bool smartPodmienkyOk = novyLinkOk && megaDataCerstve && megaVysledok.megaStav != 2;
   aktualizujUnoAgreementStabilizaciu(smartPodmienkyOk, linkTerazMs);
   aktualizujMegaVysledok();

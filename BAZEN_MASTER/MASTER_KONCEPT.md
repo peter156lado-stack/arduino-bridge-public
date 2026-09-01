@@ -82,7 +82,7 @@ Pevná priorita resolvera je `STOP > BASIC > DEGRADED > SMART`:
 
 Uno neposudzuje druhú SMART analytiku. Vo V5 Uno→Mega rámci používa bajt 20 ako flagy: bit 0 znamená `UNO_AGREEMENT_ON`, bit 1 `UNO_XKC_LOW_WATER` a bity 2–7 musia byť nulové. Mega považuje vzdialený agreement za ON iba z čerstvého validného rámca. Veľkosti 22/24 B, CRC-8/ATM, sekvencie, MASTER→REPLY, 500 ms reply okno, 10 s timeouty a 180 s stabilizácia zostávajú nezmenené; aktuálna fyzická linka používa 38400 Bd. XKC flag je commissioning diagnostika a nevstupuje do agreement ani `SYSTEM_MODE`.
 
-Staré `megaStav 0/1/2` a `aktualnyUnoStav() 0/1/2` zostávajú dočasne kompatibilnou health/agreement telemetriou. Nie sú druhou autoritou `SYSTEM_MODE`. Serial Mega zobrazuje `SYSTEM_MODE=... REASON=...` v 10 s diagnostike a okamžitý event iba pri zmene režimu.
+`megaStav 0/1/2` a `aktualnyUnoStav() 0/1/2` zostávajú kompatibilnou health/agreement telemetriou, nie druhou autoritou `SYSTEM_MODE`. Mega posiela `0`, ak sú výsledné pool/T2/T3 hodnoty platné z primárnych zdrojov a `systemDegradovany=false`; `1`, ak sú všetky tri výsledné hodnoty platné, ale používa sa schválený fallback alebo existuje iná nekritická degradácia; `2` iba vtedy, ak chýba platná výsledná pool, T2 alebo T3 hodnota a Mega/control vrstva už nie je dôveryhodná pre SMART agreement. Uno povoľuje stabilizáciu pri `megaStav` 0 aj 1 a odmieta ju pri 2. Serial Mega zobrazuje `SYSTEM_MODE=... REASON=...` v 10 s diagnostike a okamžitý event iba pri zmene režimu.
 
 ### Nezávislá klasifikácia MODE / FAULT PRIORITY / BASIC PERMISSION
 
@@ -443,7 +443,7 @@ Fyzický A/B test potvrdil časovú kolíziu pravidelnej UNO OneWire/DS18B20 kom
 
 Mega↔Uno UART je aktuálne priama neinvertovaná TTL diagnostická/komunikačná linka pri 38400 Bd: Mega Serial2 D16/TX2 → sériový 10 kΩ → Uno D7/SoftwareSerial RX a Uno D8/SoftwareSerial TX → sériový 10 kΩ → Mega D17/RX2. Dosky majú spoločnú GND, nemajú medzi sebou prepojené +5 V a PC817 nie sú v dátovej ceste. Aktuálny kód používa binárny protokol V5 s pevnými rámcami 22 B Uno→Mega a 24 B Mega→Uno. Každý rámec obsahuje magic `BA 5E`, verziu, typ, pevnú dĺžku, 16-bitovú sekvenciu a CRC-8/ATM. V5 zachováva celý V4 layout a iba prideľuje dva predtým rezervované bity commissioning telemetrii XKC. Link timeout a stale limit zostávajú 10 s. UART stále nie je finálnym nezávislým safety heartbeat prvkom.
 
-Aktuálne schválené a fyzicky overené časovanie zostáva **MASTER→REPLY**. Mega približne raz za sekundu odošle svoj 24 B rámec; Uno ho úplne prijme a overí a až potom odošle 22 B odpoveď. Mega počas neblokujúceho 500 ms okna nezačína ďalší rámec. CRC algoritmus, sekvencie, 10 s link/stale timeout a 180 s agreement stabilizácia zostávajú zachované. Bench test V4 z 22. 8. 2026 prebehol bez `CRC_FAIL`, `FRAME_INVALID`, `LINK_TIMEOUT` a `SEQ_GAP`; V5 commissioning rozšírenie čaká na fyzický test oboch XKC ciest.
+Aktuálne schválené a fyzicky overené časovanie zostáva **MASTER→REPLY**. Mega približne raz za sekundu odošle svoj 24 B rámec; Uno ho úplne prijme a overí a až potom odošle 22 B odpoveď. Mega počas neblokujúceho 500 ms okna nezačína ďalší rámec. CRC algoritmus, sekvencie, 10 s link/stale timeout a 180 s agreement stabilizácia zostávajú zachované. Bench test V4 z 22. 8. 2026 prebehol bez `CRC_FAIL`, `FRAME_INVALID`, `LINK_TIMEOUT` a `SEQ_GAP`; V5 XKC prenos oboma smermi je fyzicky overený commissioning testom 1. 9. 2026.
 
 ### Mega↔Uno UART – aktuálna fyzická vrstva
 
@@ -581,7 +581,9 @@ Pevná hlavička oboch rámcov: bajt 0 `0xBA`, bajt 1 `0x5E`, bajt 2 verzia `5`,
 - Uno→Mega, 22 B: bajt 7 validity (`bit0 T1`, `bit1 T2`, `bit2 TBOX`, `bit3 sonar`, `bit4 T3`, bity 5–7 rezerva), 8 stav Una, 9 stav sonaru, 10–11 UNO_T1, 12–13 UNO_T2, 14–15 UNO_TBOX, 16–17 sonar, 18–19 UNO_T3, 20 flagy (`bit0 UNO_AGREEMENT_ON`, `bit1 UNO_XKC_LOW_WATER`, bity 2–7 musia byť 0), 21 CRC-8/ATM počítané cez bajty 0–20.
 - Mega→Uno, 24 B: bajt 7 validity (`pool/T2/RTC`), 8 zdroj pool, 9 zdroj T2, 10 diagnostické bity (`bit0 T1_CONFLICT`, `bit1 T2_CONFLICT`, `bit2 MEGA_T1_SUSPECT`, `bit3 UNO_T1_SUSPECT`, `bit4 MEGA_T2_SUSPECT`, `bit5 UNO_T2_SUSPECT`, `bit6 MEGA_XKC_LOW_WATER`, `bit7 musí byť 0`), 11 stav Mega, 12–13 výsledný pool, 14–15 výsledná T2, 16–19 RTC sekundy od polnoci, 20 rok `00–99`, 21 mesiac, 22 deň, 23 CRC.
 
-**V5 IMPLEMENTOVANÉ / ČAKÁ NA FYZICKÝ COMMISSIONING TEST:** obe dosky používajú `LINK_PROTOCOL_VERSION=5`. Rozmery rámcov, časovanie, CRC, sekvencie a agreement logika sa nezmenili. Každá doska pozná lokálny XKC stav, čerstvý vzdialený stav alebo `STALE` a diagnostický `XKC_CONFLICT`. XKC bity zatiaľ neovládajú `SYSTEM_MODE`, agreement, `aktualnyUnoStav()`, TOTAL STOP, filtráciu, solár ani BASIC.
+**V5 XKC FYZICKY OVERENÉ / COMMISSIONING PASS 1. 9. 2026:** obe dosky používajú `LINK_PROTOCOL_VERSION=5`. WATER bol na Mega aj Uno zobrazený ako WATER a `XKC_CONFLICT=NO`; LOW_WATER bol na oboch LOW_WATER a `XKC_CONFLICT=NO`; zámerné odpojenie jedného kanála vytvorilo WATER proti LOW_WATER a `XKC_CONFLICT=YES`; odpojený signál/pin prešiel cez `INPUT_PULLUP` bezpečným smerom na LOW_WATER. V5 prenos XKC oboma smermi je fyzicky potvrdený. Rozmery rámcov, časovanie, CRC, sekvencie a agreement logika sa nezmenili. Počas testu XKC neovládal `SYSTEM_MODE`, agreement, `aktualnyUnoStav()`, TOTAL STOP, filtráciu, solár ani BASIC a naďalej zostáva monitoring-only.
+
+Stav Mega v bajte 11 má význam: `0 = MEGA_HEALTH_OK`, teda všetky potrebné výsledné pool/T2/T3 hodnoty sú platné bez degradácie; `1 = MEGA_DEGRADED_TRUSTED`, teda všetky tri výsledné hodnoty sú platné cez primárny zdroj alebo schválený fallback a Mega zostáva dôveryhodná pre agreement; `2 = MEGA_CONTROL_CRITICAL`, teda najmenej jedna potrebná výsledná pool/T2/T3 hodnota nemá platný zdroj. Platný T4 alebo UNO_T1 pool fallback, UNO_T2 fallback a UNO_T3 fallback preto dávajú `megaStav=1`, nie 2. Tento bajt je iba kompatibilný vstup health/agreement pre Uno; jedinou autoritou runtime režimu zostáva `SystemMode systemMode` na Mega.
 
 **V4 IMPLEMENTOVANÉ/SKOMPILOVANÉ/FYZICKY OVERENÉ 22. 8. 2026:** obe dosky používajú `LINK_PROTOCOL_VERSION=4`. Mega parser prijíma 22 B Uno rámec, snapshot obsahuje `t3/t3Ok` a bajty 18–19 fyzicky prenášajú UNO_T3. Mega→Uno zostáva 24 B s nezmeneným obsahom. V3 a V4 sa nesmú miešať. Pri tomto teste zostali všetky linkové chybové čítače nulové. Startup/commissioning ROM scanner bol už odstránený a pri fyzickom V4 boote sa nespustil.
 
@@ -772,7 +774,7 @@ Fyzické meranie samotného XKC potvrdilo: voda prítomná/LED ON dáva na žlto
 
 Mega D30 a Uno A2 majú každý vlastný optočlenový kanál. PC817 sa nevracia do Mega↔Uno UART; dátová linka zostáva priame TTL cez 10 kΩ pri 38400 Bd.
 
-Dve optočlenové cesty poskytujú nezávislé čítanie a interpretáciu procesormi, ale nevytvárajú druhý fyzický snímač: XKC zostáva spoločným sensing elementom. Aktuálna prvá implementácia je striktne `MONITOR / COMMISSIONING`: lokálny stav, čerstvý vzdialený stav alebo `STALE` a diagnostický `XKC_CONFLICT`. XKC zatiaľ nesmie aktivovať D32/A0 TOTAL STOP, meniť `SYSTEM_MODE`, agreement ani `aktualnyUnoStav()`, blokovať filtráciu/solár alebo zasahovať do BASIC. Safety autorita sa môže doplniť až po fyzickom overení oboch optických ciest a samostatnom schválení.
+Dve optočlenové cesty poskytujú nezávislé čítanie a interpretáciu procesormi, ale nevytvárajú druhý fyzický snímač: XKC zostáva spoločným sensing elementom. Fyzický commissioning oboch MCU ciest a V5 prenosu je uzavretý ako PASS: zhodné WATER aj LOW_WATER dávajú `XKC_CONFLICT=NO`, rozpojenie jedného kanála dáva `XKC_CONFLICT=YES` a otvorený vstup smeruje na LOW_WATER. Implementácia zostáva striktne `MONITORING-ONLY`: lokálny stav, čerstvý vzdialený stav alebo `STALE` a diagnostický konflikt. XKC neaktivuje D32/A0 TOTAL STOP, nemení `SYSTEM_MODE`, `megaStav`, agreement ani `aktualnyUnoStav()`, neblokuje filtráciu/solár a nezasahuje do BASIC. Safety autorita sa môže doplniť iba po samostatnom výslovnom schválení.
 
 Filtrácia má dve blokovacie relé v sérii: jedno ovláda Mega, druhé Uno. Solár má rovnakú dvojicu. Ich logika je odlišná od SMART/BASIC:
 
@@ -811,7 +813,7 @@ Fyzické kanály 5–16 zostávajú vyhradené Mega/SMART. Aktívne sú dnes iba
 
 1. HY-SRF05 Uno: fyzicky testovaný na D3/D4; nezávislý monitorovací senzor.
 2. HY-SRF05 Mega: fyzicky funkčne overený na D38 TRIG/D39 ECHO meraním približne 19,3–19,8 cm; nezávislý monitorovací senzor s monitor-only kódom.
-3. XKC-Y25-NPN: jeden spoločný LOW WATER sensing element, fyzicky čítaný cez dve samostatné optočlenové cesty na Mega D30 a Uno A2. Nejde o dva fyzicky redundantné snímače a v aktuálnej etape je iba commissioning monitor bez safety autority.
+3. XKC-Y25-NPN: jeden spoločný LOW WATER sensing element, fyzicky čítaný cez dve samostatné optočlenové cesty na Mega D30 a Uno A2; WATER, LOW_WATER, konflikt kanálov, otvorený vstup aj V5 prenos majú fyzický commissioning PASS. Nejde o dva fyzicky redundantné snímače a naďalej je iba monitoring-only bez safety autority.
 
 MEGA_SONAR a UNO_SONAR sú zatiaľ iba dvojica nezávislých monitorovacích senzorov. Nesmú sa používať na rozhodovanie o hladine, LOW WATER ani dopúšťaní, kým nebude fyzicky hotová finálna vyrovnávacia nádoba, referenčná geometria a kalibrácia.
 

@@ -15,7 +15,7 @@ Použitá doska je kombinovaná Arduino Mega + WiFi Techfun IOT382: ATmega2560, 
 | D38 | MEGA HY-SRF05 TRIG | fyzicky funkčne overené; izolovaný test meral približne 19,3–19,8 cm |
 | D39 | MEGA HY-SRF05 ECHO | fyzicky funkčne overené ako obyčajný `INPUT`, bez interného pull-upu |
 | D20/D21 | AHT10 I²C | fyzicky namontované, funkčné a prevádzkovo overené meranie vonkajšej teploty a RH; zdieľaná I²C zbernica |
-| D30 | MEGA_XKC | FYZICKY PRIPOJENÉ cez samostatný kanál HY-M154/PC817; `INPUT_PULLUP`; `LOW = WATER`, `HIGH = LOW_WATER / DRY / otvorená signálová cesta`; commissioning-only bez safety autority |
+| D30 | MEGA_XKC | FYZICKY OVERENÉ / COMMISSIONING PASS cez samostatný kanál HY-M154/PC817; `INPUT_PULLUP`; `LOW = WATER`, `HIGH = LOW_WATER / DRY / otvorená signálová cesta`; odpojenie ide bezpečným smerom na LOW_WATER; monitoring-only bez safety autority |
 | D31 | MEGA_AGREEMENT – fyzická watchdog/povoľovacia vetva | FYZICKY OVERENÉ RIADENIE; boot/reset LOW, po 180 s stability HIGH, strata podmienok okamžite LOW a recovery spúšťa nový 180 s interval; H/L modul `HIGH → COM–NO`, `LOW → COM–NC` |
 | D32 | MEGA_TOTAL_STOP | FYZICKY PRIPOJENÉ A COMMISSIONING TESTOM OVERENÉ; `HIGH → relé zopnuté/COM–NO`, `LOW → relé uvoľnené/COM–NC`; napájanie modulu z Mega power domain |
 | D33 | W1209_FACKOVAC | FYZICKY PRIPOJENÉ A COMMISSIONING TESTOM OVERENÉ; `HIGH → relé zopnuté/COM–NO`, `LOW → relé uvoľnené/COM–NC`; napájanie modulu z Mega power domain |
@@ -34,7 +34,7 @@ Ostatné jednotlivé Mega piny neboli v dodaných poznámkach výslovne označen
 | D22 | OUT | MEGA_R9 | filtrácia, aktívne LOW |
 | D23 | OUT | MEGA_R10 | solár/chrlič, aktívne LOW |
 | D24–D29 | deklarované | MEGA_R11–R16 | bez implementovanej funkcie |
-| D30 | IN_PULLUP | MEGA_XKC | cez vlastný HY-M154/PC817 kanál; `LOW = WATER`, `HIGH = LOW_WATER / DRY / otvorená cesta`; iba commissioning diagnostika, bez zásahu do TOTAL STOP, režimu, agreement alebo relé |
+| D30 | IN_PULLUP | MEGA_XKC | vlastný HY-M154/PC817 kanál; FYZICKY OVERENÉ / COMMISSIONING PASS vrátane WATER, LOW_WATER, konfliktu kanálov a bezpečného HIGH pri odpojení; monitoring-only bez zásahu do TOTAL STOP, režimu, agreement alebo relé |
 | D31 | OUT | MEGA_AGREEMENT – fyzická watchdog/povoľovacia vetva | boot/reset LOW; platná linka + čerstvé dáta + nekritický stav Una počas 180 s → HIGH; link/stale timeout 10 s alebo kritický stav → okamžite LOW a timer od nuly; fyzická funkcia agreement logiky overená, logika sa nemení |
 | D32 | OUT | MEGA_TOTAL_STOP | produkčný boot/reset stav `LOW / COM–NC`; fyzicky potvrdené správne ovládanie Mega TOTAL STOP modulu; automatické fault podmienky zatiaľ NEIMPLEMENTOVANÉ |
 | D33 | OUT | W1209_FACKOVAC (`W1209_SUPERVISION_RELAY_PIN`) | produkčný boot/reset stav `LOW / COM–NC`; fyzicky potvrdené správne ovládanie W1209 supervision modulu; autorita výhradne v budúcom explicitnom `SYSTEM_MODE == BASIC`; automatický power-cycle/fault stavový automat zatiaľ NEIMPLEMENTOVANÝ |
@@ -131,7 +131,7 @@ Napájanie Una je fyzicky vedené zo samostatného LM2596 nastaveného na 7,5 V.
 | D8 | Uno TX → sériový 10 kΩ → Mega D17/RX2 | priame TTL, neinvertovaný SoftwareSerial, 38400 Bd; V5 REPLY rámec 22 B s UNO_T3 a XKC flagom; spoločná GND; bez PC817 a bez spoločného +5 V |
 | D9 | H/L relé modul #1 | FYZICKY OVERENÉ RIADENIE; 5 V, spoločná systémová GND/DC−; `HIGH → aktívne/COM–NO`, `LOW → neaktívne/COM–NC`; strata napájania → COM–NC |
 | A0 | UNO_TOTAL_STOP | FYZICKY PRIPOJENÉ A COMMISSIONING TESTOM OVERENÉ; `HIGH → relé zopnuté/COM–NO`, `LOW → relé uvoľnené/COM–NC`; napájanie modulu z Uno power domain |
-| A2 | UNO_XKC | FYZICKY PRIPOJENÉ cez druhý samostatný kanál HY-M154/PC817; `INPUT_PULLUP`; `LOW = WATER`, `HIGH = LOW_WATER / DRY / otvorená signálová cesta`; commissioning-only bez safety autority |
+| A2 | UNO_XKC | FYZICKY OVERENÉ / COMMISSIONING PASS cez druhý samostatný kanál HY-M154/PC817; `INPUT_PULLUP`; `LOW = WATER`, `HIGH = LOW_WATER / DRY / otvorená signálová cesta`; odpojenie ide bezpečným smerom na LOW_WATER; monitoring-only bez safety autority |
 | D10 | MicroSD CS | testované, `UNO_LOG.CSV` |
 | D11 | MicroSD MOSI | testované |
 | D12 | MicroSD MISO | testované |
@@ -164,7 +164,7 @@ Lokálna softvérová migrácia je implementovaná a fyzicky potvrdená: meranie
 | D12 | IN | Uno MicroSD MISO | SPI |
 | D13 | OUT | Uno MicroSD SCK | SPI |
 | A0 | OUT | UNO_TOTAL_STOP | produkčný boot/reset stav `LOW / COM–NC`; automatický commissioning impulz odstránený; fyzicky potvrdené správne ovládanie Uno TOTAL STOP modulu; `HIGH` je rezervované iba pre budúci vedomý TOTAL STOP zásah, automatické fault podmienky zatiaľ NEIMPLEMENTOVANÉ |
-| A2 | IN_PULLUP | UNO_XKC | cez vlastný HY-M154/PC817 kanál; `LOW = WATER`, `HIGH = LOW_WATER / DRY / otvorená cesta`; iba commissioning diagnostika, bez zásahu do TOTAL STOP, `aktualnyUnoStav()`, agreement alebo BASIC |
+| A2 | IN_PULLUP | UNO_XKC | vlastný HY-M154/PC817 kanál; FYZICKY OVERENÉ / COMMISSIONING PASS vrátane WATER, LOW_WATER, konfliktu kanálov a bezpečného HIGH pri odpojení; monitoring-only bez zásahu do TOTAL STOP, `aktualnyUnoStav()`, agreement alebo BASIC |
 
 ### REZERVOVANÉ/NAVRHOVANÉ
 
@@ -212,7 +212,7 @@ ESP priamo neovláda relé.
 
 | Signál | Zdroj/cieľ | Elektrická logika |
 |---|---|---|
-| XKC LOW WATER | jeden XKC → dve samostatné optočlenové cesty → Mega D30 a Uno A2 | FYZICKY PRIPOJENÉ; oba vstupy `INPUT_PULLUP`; `LOW = WATER`, `HIGH = LOW_WATER / DRY / otvorená cesta`; zatiaľ commissioning-only bez safety autority |
+| XKC LOW WATER | jeden XKC → dve samostatné optočlenové cesty → Mega D30 a Uno A2 | FYZICKY OVERENÉ / COMMISSIONING PASS; oba vstupy `INPUT_PULLUP`; WATER aj LOW_WATER zhodné na oboch MCU, zámerne rozpojené kanály vytvoria `XKC_CONFLICT=YES`, odpojenie ide na LOW_WATER; monitoring-only bez safety autority |
 | SMART agreement Mega | Mega → jeho povoľovacie relé | aktívne držanie povoľuje SMART |
 | SMART agreement Uno | Uno → jeho povoľovacie relé | aktívne držanie povoľuje SMART |
 | FIL_BLOCK Mega/Uno | každý MCU → vlastné sériové relé | neaktívna cievka povoľuje, aktívna blokuje |
@@ -220,12 +220,12 @@ ESP priamo neovláda relé.
 | MEGA_TOTAL_STOP | Mega D32 → samostatný H/L 5 V energize-to-trip modul | FYZICKY PRIPOJENÉ/COMMISSIONING PASS; napájanie z Mega power domain; `LOW → COM–NC`, `HIGH → COM–NO`. Kontakt COM–NC je fyzicky zapojený v spoločnej sériovej motorovej ceste pred WAGO rozdelením do BASIC_R1/R2; automatické fault podmienky neimplementované. |
 | UNO_TOTAL_STOP | Uno A0 → samostatný H/L 5 V energize-to-trip modul | FYZICKY PRIPOJENÉ/COMMISSIONING PASS; napájanie z Uno power domain; `LOW → COM–NC`, `HIGH → COM–NO`. Kontakt COM–NC je fyzicky zapojený v spoločnej sériovej motorovej ceste pred WAGO rozdelením do BASIC_R1/R2; automatické fault podmienky neimplementované. |
 | TOTAL STOP spoločná kontaktná cesta | prívod → 2× TOTAL STOP COM–NC → WAGO → BASIC_R1/BASIC_R2 | FYZICKY ZAPOJENÉ; D32 a A0 commissioning test potvrdil ovládanie správnych reléových modulov; automatická TOTAL STOP fault logika zatiaľ neimplementovaná |
-| XKC LOW WATER optická cesta Mega | XKC → samostatný HY-M154/PC817 kanál → Mega D30 | FYZICKY PRIPOJENÉ; `INPUT_PULLUP`; `LOW = WATER`, `HIGH = LOW_WATER / DRY / otvorená cesta`; monitor/commissioning-only |
-| XKC LOW WATER optická cesta Uno | XKC → druhý samostatný HY-M154/PC817 kanál → Uno A2 | FYZICKY PRIPOJENÉ; `INPUT_PULLUP`; `LOW = WATER`, `HIGH = LOW_WATER / DRY / otvorená cesta`; monitor/commissioning-only |
+| XKC LOW WATER optická cesta Mega | XKC → samostatný HY-M154/PC817 kanál → Mega D30 | FYZICKY OVERENÉ / COMMISSIONING PASS; `INPUT_PULLUP`; `LOW = WATER`, `HIGH = LOW_WATER / DRY / otvorená cesta`; monitoring-only |
+| XKC LOW WATER optická cesta Uno | XKC → druhý samostatný HY-M154/PC817 kanál → Uno A2 | FYZICKY OVERENÉ / COMMISSIONING PASS; `INPUT_PULLUP`; `LOW = WATER`, `HIGH = LOW_WATER / DRY / otvorená cesta`; monitoring-only |
 | RESET Mega/Uno cez BC547 | zdravá doska → BC547 → RESET druhej dosky | piny, rezistory, polarita a impulz TBD; BC547 low-side/open-collector-like, nie galvanické oddelenie |
 | HISTORICKÉ UART galvanické oddelenie | Mega D16/TX2 → PC817 → Uno D7/RX; Uno D8/TX → PC817 → Mega D17/RX2 | historický stav 9600 Bd/inverse; PC817 už nie sú v dátovej ceste. Aktuálny stav je priame TTL 38400 Bd cez 10 kΩ v každom smere, spoločná GND a bez spoločného +5 V. |
 | W1209_FACKOVAC / W1209_RESET_SUPERVISION | Mega D33 → samostatný H/L 5 V modul v 12 V napájaní W1209 | FYZICKY PRIPOJENÉ/COMMISSIONING PASS; napájanie z Mega power domain; `LOW → COM–NC`, `HIGH → COM–NO`; kontaktná cesta `24 V → buck 12 V → BASIC_R3 COM–NC → fackovač COM–NC → W1209` fyzicky zapojená. Automatické fault podmienky, power-cycle čas a recovery zostávajú NEIMPLEMENTOVANÉ/TBD; mŕtvy Mega ponechá NC napájanie. |
 | W1209 230 V kontaktná cesta | BASIC_R1 NC → COM1 → K1 → COM2 → K2 | vstup/K1→COM2/K2 FYZICKY ZAPOJENÉ; finálny výstup za K2 NEZAPOJENÝ, cieľ neurčený |
 | T_FILL / DOPÚŠŤANIE_T | budúci snímač teploty prívodnej vody pred zmiešaním s bazénom | PLÁNOVANÉ; typ senzora, fyzický kus, ROM, MCU vlastník, zbernica a pin NEURČENÉ; iba diagnostika, nie safety |
 
-XKC commissioning musí ešte fyzicky potvrdiť čítanie oboch MCU ciest v stave WATER aj LOW_WATER. Až samostatne schválená neskoršia etapa smie pridať safety autoritu.
+XKC commissioning oboch MCU ciest aj V5 prenosu je fyzicky uzavretý ako PASS: WATER/WATER a LOW_WATER/LOW_WATER dávajú `XKC_CONFLICT=NO`, zámerné odpojenie jedného kanála dáva rozdielne stavy a `XKC_CONFLICT=YES`, odpojený signál/pin prejde cez `INPUT_PULLUP` na LOW_WATER. Počas testu XKC neovplyvnil TOTAL STOP, `SYSTEM_MODE`, agreement, filtráciu, solár ani BASIC. Až samostatne schválená neskoršia etapa smie pridať safety autoritu.

@@ -178,6 +178,13 @@ void prijmiUnoByte(byte hodnota) {
   }
 }
 
+byte aktualnyMegaHealthStav() {
+  // Kompatibilna health/agreement telemetria, nie druha autorita SYSTEM_MODE.
+  // Schvaleny platny fallback zostava doveryhodny DEGRADED stav (1).
+  if (!POOL_TEMP_VALID || !T2_EFFECTIVE_VALID || !T3_EFFECTIVE_VALID) return 2;
+  return systemDegradovany ? 1 : 0;
+}
+
 void pripravMegaRamec() {
   megaLinkSekvencia++;
   unoLinkTxBuffer[0] = LINK_MAGIC_1;
@@ -204,9 +211,7 @@ void pripravMegaRamec() {
   if (UNO_T2_SUSPECT) diagnostika |= 0x20;
   if (megaXkcLowWater) diagnostika |= 0x40;
   unoLinkTxBuffer[10] = diagnostika;
-  // Kompatibilny Mega health stav 0/1/2 zostava docasne agreement vstupom Una.
-  // Nie je druhou autoritou SYSTEM_MODE.
-  unoLinkTxBuffer[11] = system_OK ? (systemDegradovany ? 1 : 0) : 2;
+  unoLinkTxBuffer[11] = aktualnyMegaHealthStav();
   zapisI16(unoLinkTxBuffer, 12, POOL_TEMP_VALID ? teplotaNaStotiny(teplotaBazena) : 0);
   zapisI16(unoLinkTxBuffer, 14, T2_EFFECTIVE_VALID ? teplotaNaStotiny(teplotaSolarVystup) : 0);
   const unsigned long sekundyDna = rtcOk ? (unsigned long)h * 3600UL + (unsigned long)m * 60UL + s : 0UL;
