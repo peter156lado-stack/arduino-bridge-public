@@ -75,12 +75,12 @@ Mega obsahuje jedinú autoritatívnu premennú `SystemMode systemMode` so stavmi
 
 Pevná priorita resolvera je `STOP > BASIC > DEGRADED > SMART`:
 
-1. `MODE_STOP`: architektonická vetva existuje, ale funkcia explicitnej STOP podmienky dnes vždy vracia `false`; žiadna senzorová chyba, `system_OK=false`, `SOLAR_CONTROL_VALID=false` ani kompatibilný health stav `2` sa priamo nemapujú na STOP.
+1. `MODE_STOP`: má prvú prioritu. Aktuálne implementovanou explicitnou STOP podmienkou je lokálny `MEGA_XKC_TRIP` po 5 000 ms súvislého LOW WATER na Mega D30. Bežná senzorová chyba, `system_OK=false`, `SOLAR_CONTROL_VALID=false`, vzdialený XKC stav, `XKC_CONFLICT` ani kompatibilný health stav `2` sa samy priamo nemapujú na STOP.
 2. `MODE_BASIC`: nastane, ak nie sú súčasne potvrdené `megaAgreementOn`, čerstvý `unoAgreementOnRemote`, `unoLinkStavOk` a `REMOTE_DATA_VALID`. Boot, reset, strata linky a celý 180 s stabilizačný interval preto zostávajú BASIC.
 3. `MODE_DEGRADED`: vyhodnotí sa iba pri zachovanej SMART autorite oboch agreement a používa dnešný `systemDegradovany`. Jeho aktuálne zdroje sú neprimárny pool zdroj, lokálna chyba T2, lokálna chyba T3, chyba MEGA_TBOX a remote stale; remote stale však vďaka vyššej priorite resolvera vytvorí BASIC. Fyzicky potvrdený príklad je `MEGA_T3_CHYBA + čerstvý UNO_T3_REMOTE_FALLBACK + oba agreement ON → MODE_DEGRADED`.
 4. `MODE_SMART`: obe agreement sú potvrdené, linka a remote údaje sú čerstvé a `systemDegradovany=false`.
 
-Uno neposudzuje druhú SMART analytiku. Vo V5 Uno→Mega rámci používa bajt 20 ako flagy: bit 0 znamená `UNO_AGREEMENT_ON`, bit 1 `UNO_XKC_LOW_WATER` a bity 2–7 musia byť nulové. Mega považuje vzdialený agreement za ON iba z čerstvého validného rámca. Veľkosti 22/24 B, CRC-8/ATM, sekvencie, MASTER→REPLY, 500 ms reply okno, 10 s timeouty a 180 s stabilizácia zostávajú nezmenené; aktuálna fyzická linka používa 38400 Bd. XKC flag je commissioning diagnostika a nevstupuje do agreement ani `SYSTEM_MODE`.
+Uno neposudzuje druhú SMART analytiku. Vo V5 Uno→Mega rámci používa bajt 20 ako flagy: bit 0 znamená `UNO_AGREEMENT_ON`, bit 1 `UNO_XKC_LOW_WATER` a bity 2–7 musia byť nulové. Mega považuje vzdialený agreement za ON iba z čerstvého validného rámca. Veľkosti 22/24 B, CRC-8/ATM, sekvencie, MASTER→REPLY, 500 ms reply okno, 10 s timeouty a 180 s stabilizácia zostávajú nezmenené; aktuálna fyzická linka používa 38400 Bd. Prenášaný vzdialený XKC flag zostáva iba diagnostický a nevstupuje do agreement ani `SYSTEM_MODE`; do `MODE_STOP` vstupuje výhradne lokálne potvrdený Mega XKC trip.
 
 `megaStav 0/1/2` a `aktualnyUnoStav() 0/1/2` zostávajú kompatibilnou health/agreement telemetriou, nie druhou autoritou `SYSTEM_MODE`. `megaStav` nepočíta chybné senzory; klasifikuje dôveryhodnosť Mega ako CONTROL vrstvy. Mega posiela `0`, ak je control vrstva plne v poriadku (`FIL_CONTROL_VALID=true` a `systemDegradovany=false`); `1`, ak Mega zostáva dôveryhodná, ale niektorá funkcia používa fallback, je degradovaná alebo bezpečne izolovaná; `2` iba pri explicitnej implementovanej strate dôveryhodnosti control vrstvy. V dnešnom rozsahu je jedinou takou podmienkou `FIL_CONTROL_VALID=false`. Neplatný pool, T2 alebo T3 a z toho odvodený `SOLAR_CONTROL_VALID=false` zostávajú stavom 1, pretože existujúca výstupná logika izoluje solár OFF a filtrácia zostáva platná. Uno povoľuje stabilizáciu pri `megaStav` 0 aj 1 a odmieta ju pri 2. Serial Mega zobrazuje `SYSTEM_MODE=... REASON=...` v 10 s diagnostike a okamžitý event iba pri zmene režimu.
 
@@ -113,7 +113,7 @@ UART nesmie byť jedinou safety pamäťou ani jediným dôkazom `BASIC_ALLOWED=N
 
 Toto pravidlo nemení vlastníctvo W1209 supervision: patrí Mega a zostáva samostatnou funkciou. Uno týmto nezískava oprávnenie resetovať ani odpájať W1209.
 
-**Aktuálny implementačný stav:** TOTAL STOP relé sú osadené, samostatne napájané a ich sériová kontaktná cesta `COM–NC` pred WAGO rozdelením do BASIC_R1/R2 je fyzicky zapojená. Mega D32 a Uno A0 sú pripojené a commissioning testom overené. Model `FAULT_PRIORITY/BASIC_ALLOWED` ani automatické TOTAL STOP fault podmienky však zatiaľ nie sú zapojené do produkčného rozhodovania a nebola schválená konkrétna mapa existujúcich porúch na `FAULT_PRIORITY` a `BASIC_ALLOWED`. Bez týchto údajov sa nesmie vytvoriť softvérový príznak, ktorý by predstieral hotovú automatickú fyzickú ochranu.
+**Aktuálny implementačný stav:** TOTAL STOP relé sú osadené, samostatne napájané a ich sériová kontaktná cesta `COM–NC` pred WAGO rozdelením do BASIC_R1/R2 je fyzicky zapojená. Mega D32 a Uno A0 sú pripojené a priamym commissioning testom overené. XKC Safety V1 je prvá konkrétna automatická TOTAL STOP podmienka: každá doska používa iba vlastný lokálny XKC vstup, po 5 000 ms LOW WATER aktivuje vlastné relé a po 10 000 ms WATER ho uvoľní. Model `FAULT_PRIORITY/BASIC_ALLOWED` ani iné automatické TOTAL STOP dôvody zatiaľ nie sú zapojené do produkčného rozhodovania. Automatická XKC reakcia ešte čaká na fyzický test pri bazéne; dokumentácia preto nepredstiera jeho ukončenie.
 
 #### OPEN / REQUIRED BEFORE IMPLEMENTATION – zachovanie BASIC inhibície po smrti detegujúcej dosky
 
@@ -298,7 +298,7 @@ NO kontakt sa nepoužíva ako normálna motorová cesta. Oba moduly zostávajú 
 
 ### DRY RUN / NO WATER
 
-Dôveryhodný a potvrdený signál neprítomnosti vody má právo vyvolať okamžitý TOTAL STOP z jedinej dosky. Nečaká sa na zhodu oboch procesorov, agreement ani zhodu oboch sonarov. Zdroj signálu, elektrické zapojenie a potvrdzovacia logika zostávajú do fyzického návrhu `TBD`; budúci spoločný XKC/LOW WATER a ďalšie nezávislé fyzické dôkazy musia byť posúdené samostatne.
+Dôveryhodný a potvrdený signál neprítomnosti vody má právo vyvolať TOTAL STOP z jedinej dosky. Nečaká sa na zhodu oboch procesorov, agreement ani zhodu oboch sonarov. Pre XKC Safety V1 je zdrojom jeden spoločný XKC vedený dvoma samostatnými optočlenovými cestami; každá doska rozhoduje iba zo svojho vstupu po 5 000 ms súvislého LOW WATER. Ďalšie nezávislé fyzické dôkazy musia byť posúdené samostatne.
 
 ### Duálne sonary – budúci diagnostický model hladiny
 
@@ -431,7 +431,7 @@ Hlavná doska je fyzicky namontovaná kombinovaná **Arduino Mega + WiFi, Techfu
 
 Mega HY-SRF05 je fyzicky a funkčne overený ako samostatný monitorovací vstup: D38 TRIG a D39 ECHO. Izolovaný diagnostický test nameral približne 19,3–19,8 cm. D39 musí byť obyčajný `INPUT` bez interného pull-upu. Hlavné meranie používa neblokujúci stavový automat cez `micros()`, bez `delay()` a `pulseIn()`, v intervale 250 ms, s timeoutom 30 ms, rozsahom 2–450 cm a stavmi `MEGA_SONAR_OK`, `MEGA_SONAR_TIMEOUT` a `MEGA_SONAR_CHYBA`. Chyba sonaru nevstupuje do `system_OK`, regulácie ani safety logiky a nesmie zastaviť ostatné funkcie Mega. D40–D43 zostávajú voľná rezerva.
 
-Spoločný XKC-Y25-NPN je fyzicky pripojený cez dve samostatné optočlenové cesty na Mega D30 a Uno A2 a prvá implementácia ho iba monitoruje. Naďalej plánované zostávajú samostatné safety rozhodovanie XKC, heartbeat s Uno, vlastné LOW WATER relé FIL/SOLAR a lux senzor. Starý softvérový heartbeat Mega D44 bol ako fyzicky nepoužitý zvyšok odstránený a D44 je voľný. Skladovaný BH1750 je kandidát lux senzora, ale jeho pin, I²C adresa a prahy zatiaľ nie sú pridelené. Lux má byť iba doplnkový vstup solárnej diagnostiky; nesmie byť safety dôkaz ani sám definitívne povoliť solár.
+Spoločný XKC-Y25-NPN je fyzicky pripojený cez dve samostatné optočlenové cesty na Mega D30 a Uno A2. XKC Safety V1 dáva každej doske lokálne rozhodovanie: 5 s potvrdený LOW WATER aktivuje vlastný TOTAL STOP a 10 s súvislého WATER trip zruší; UART ani druhá doska nie sú podmienkou. Naďalej plánované zostávajú samostatný safety heartbeat, vlastné LOW WATER relé FIL/SOLAR a lux senzor. Starý softvérový heartbeat Mega D44 bol ako fyzicky nepoužitý zvyšok odstránený a D44 je voľný. Skladovaný BH1750 je kandidát lux senzora, ale jeho pin, I²C adresa a prahy zatiaľ nie sú pridelené. Lux má byť iba doplnkový vstup solárnej diagnostiky; nesmie byť safety dôkaz ani sám definitívne povoliť solár.
 
 ### Uno – bezpečnostná/BASIC jednotka
 
@@ -515,7 +515,7 @@ Kritické safety funkcie sú výnimka. Každá doska musí nezávisle vykonať j
 
 Prípadná migrácia nemá znamenať návrh systému od začiatku. Má zachovať súčasnú filozofiu, protokolové princípy a role, využiť väčšiu pamäť Mega #2 a podľa možností nahradiť SoftwareSerial hardvérovým UART. Konkrétna doska, UART, piny, rozdelenie diagnostických funkcií, migrácia BLACK BOX a zmeny protokolu zostávajú `NEURČENÉ` až do osobitného schválenia.
 
-Uno už commissioning-only číta XKC na A2 a agreement riadi na D9. Budúce bezpečnostné vyhodnotenie XKC, samostatný heartbeat, ACK/reset, závažné poruchy a autonómna BASIC logika zostávajú predmetom osobitného schválenia; aktuálna XKC telemetria nemá riadiacu autoritu.
+Uno číta XKC lokálne na A2 a agreement riadi osobitne na D9. XKC Safety V1 po 5 s súvislého lokálneho LOW WATER nastaví `UNO_XKC_TRIP` a aktivuje A0 aj bez Mega/UART/agreement; po 10 s súvislého WATER ho zruší. Prenášaný Mega XKC stav a konflikt zostávajú iba diagnostické. Samostatný heartbeat, ACK/reset, ďalšie závažné poruchy a autonómna BASIC logika zostávajú predmetom osobitného schválenia.
 
 ### ESP-01S pôvodne pri Uno
 
@@ -581,7 +581,7 @@ Pevná hlavička oboch rámcov: bajt 0 `0xBA`, bajt 1 `0x5E`, bajt 2 verzia `5`,
 - Uno→Mega, 22 B: bajt 7 validity (`bit0 T1`, `bit1 T2`, `bit2 TBOX`, `bit3 sonar`, `bit4 T3`, bity 5–7 rezerva), 8 stav Una, 9 stav sonaru, 10–11 UNO_T1, 12–13 UNO_T2, 14–15 UNO_TBOX, 16–17 sonar, 18–19 UNO_T3, 20 flagy (`bit0 UNO_AGREEMENT_ON`, `bit1 UNO_XKC_LOW_WATER`, bity 2–7 musia byť 0), 21 CRC-8/ATM počítané cez bajty 0–20.
 - Mega→Uno, 24 B: bajt 7 validity (`pool/T2/RTC`), 8 zdroj pool, 9 zdroj T2, 10 diagnostické bity (`bit0 T1_CONFLICT`, `bit1 T2_CONFLICT`, `bit2 MEGA_T1_SUSPECT`, `bit3 UNO_T1_SUSPECT`, `bit4 MEGA_T2_SUSPECT`, `bit5 UNO_T2_SUSPECT`, `bit6 MEGA_XKC_LOW_WATER`, `bit7 musí byť 0`), 11 stav Mega, 12–13 výsledný pool, 14–15 výsledná T2, 16–19 RTC sekundy od polnoci, 20 rok `00–99`, 21 mesiac, 22 deň, 23 CRC.
 
-**V5 XKC FYZICKY OVERENÉ / COMMISSIONING PASS 1. 9. 2026:** obe dosky používajú `LINK_PROTOCOL_VERSION=5`. WATER bol na Mega aj Uno zobrazený ako WATER a `XKC_CONFLICT=NO`; LOW_WATER bol na oboch LOW_WATER a `XKC_CONFLICT=NO`; zámerné odpojenie jedného kanála vytvorilo WATER proti LOW_WATER a `XKC_CONFLICT=YES`; odpojený signál/pin prešiel cez `INPUT_PULLUP` bezpečným smerom na LOW_WATER. V5 prenos XKC oboma smermi je fyzicky potvrdený. Rozmery rámcov, časovanie, CRC, sekvencie a agreement logika sa nezmenili. Počas testu XKC neovládal `SYSTEM_MODE`, agreement, `aktualnyUnoStav()`, TOTAL STOP, filtráciu, solár ani BASIC a naďalej zostáva monitoring-only.
+**V5 XKC FYZICKY OVERENÉ / COMMISSIONING PASS 1. 9. 2026:** obe dosky používajú `LINK_PROTOCOL_VERSION=5`. WATER bol na Mega aj Uno zobrazený ako WATER a `XKC_CONFLICT=NO`; LOW_WATER bol na oboch LOW_WATER a `XKC_CONFLICT=NO`; zámerné odpojenie jedného kanála vytvorilo WATER proti LOW_WATER a `XKC_CONFLICT=YES`; odpojený signál/pin prešiel cez `INPUT_PULLUP` bezpečným smerom na LOW_WATER. V5 prenos XKC oboma smermi je fyzicky potvrdený. Rozmery rámcov, časovanie, CRC, sekvencie a agreement logika sa nezmenili. Tento commissioning prebehol ešte pred aktivovaním XKC Safety V1; vzdialený XKC flag a konflikt naďalej zostávajú iba diagnostické, lokálna doska však po vlastnom 5 s potvrdení LOW WATER aktivuje svoj TOTAL STOP.
 
 Stav Mega v bajte 11 má význam: `0 = MEGA_CONTROL_OK`; `1 = MEGA_CONTROL_DEGRADED_TRUSTED`, keď je niektorá funkcia degradovaná, používa fallback alebo je bezpečne izolovaná, ale Mega naďalej garantuje riadenie/izoláciu; `2 = MEGA_CONTROL_UNTRUSTED`, keď control vrstva túto garanciu stratila. Aktuálna jediná implementovaná podmienka pre 2 je `FIL_CONTROL_VALID=false`. Neplatný pool, T2, T3, ich kombinácie, platné T4/UNO_T1/UNO_T2/UNO_T3 fallbacky aj `SOLAR_CONTROL_VALID=false` dávajú pri platnej filtrácii stav 1; solár je pri neplatnom control vstupe existujúcou logikou bezpečne vypnutý. Budúce kritické control podmienky sa smú pridať až po samostatnom schválení a implementácii. Tento bajt je iba kompatibilný vstup health/agreement pre Uno; jedinou autoritou runtime režimu zostáva `SystemMode systemMode` na Mega.
 
@@ -589,7 +589,7 @@ Stav Mega v bajte 11 má význam: `0 = MEGA_CONTROL_OK`; `1 = MEGA_CONTROL_DEGRA
 
 Stav Una v bajte 8 má význam: `0 = UNO_OK` (procesor a supervisor vrstva žijú), `1 = UNO_SENSOR_DEGRADED` (jeden alebo viac lokálnych meracích senzorov je neplatných, ale Uno naďalej vykonáva dohľad, logovanie a budúci BASIC), `2 = UNO_CHYBA` (rezervované až pre skutočnú kritickú poruchu Una alebo jeho supervisor/safety vrstvy). Samotná chyba UNO_T1, UNO_T2, UNO_T3, UNO_TBOX alebo sonaru nesmie znamenať `UNO_CHYBA` ani automaticky zhodiť SMART.
 
-Pravidelný USB Serial servisný blok Una sa vypisuje najviac raz za 10 s. Po schválenom prvom SAFE TRIM je kompaktný a priamo zobrazuje stav Una, Mega linky, agreement, XKC commissioning stav a SD, hodnotu aj `OK/ERR` pre UNO_T1/T2/T3/TBOX, stav sonaru a povinné chybové čítače `CRC_FAIL`, `FRAME_INVALID`, `LINK_TIMEOUT` a `SEQ_GAP`. Vývojové čítače `RX_FRAME_OK`, `REQUEST_OK_COUNT`, `TX_REPLY_COUNT`, meranie `SD_MAX_BLOCK_MS`, RTC `DRIFT`, rozsiahly vzdialený Mega dump a textový `PROBLEM` dekodér boli z USB diagnostiky odstránené; prijaté Mega dáta a diagnostické flagy zostali zachované pre V5, agreement a SD BLACK BOX. Zmena lokálneho XKC stavu alebo recovery medzi blokmi vypíše iba krátky riadok `EVENT: ...` alebo `RECOVERY: ...`. Meracie, UART, agreement, regulačné a SD intervaly sa nezmenili.
+Pravidelný USB Serial servisný blok Una sa vypisuje najviac raz za 10 s. Po schválenom prvom SAFE TRIM je kompaktný a priamo zobrazuje stav Una, Mega linky, agreement, lokálny/vzdialený XKC a konflikt, `XKC_CONFIRM=0..5s`, `XKC_TRIP=YES/NO`, `XKC_RECOVERY=0..10s`, SD, hodnotu aj `OK/ERR` pre UNO_T1/T2/T3/TBOX, stav sonaru a povinné chybové čítače `CRC_FAIL`, `FRAME_INVALID`, `LINK_TIMEOUT` a `SEQ_GAP`. Vývojové čítače `RX_FRAME_OK`, `REQUEST_OK_COUNT`, `TX_REPLY_COUNT`, meranie `SD_MAX_BLOCK_MS`, RTC `DRIFT`, rozsiahly vzdialený Mega dump a textový `PROBLEM` dekodér boli z USB diagnostiky odstránené; prijaté Mega dáta a diagnostické flagy zostali zachované pre V5, agreement a SD BLACK BOX. Zmeny lokálneho raw stavu, začiatku potvrdenia, tripu, začiatku recovery a clear medzi blokmi vypíšu iba krátke riadky `EVENT: ...` alebo `RECOVERY: ...`. Meracie, UART, agreement, regulačné a SD intervaly sa nezmenili.
 
 Kontrolná kompilácia po implementácii V4 používa na Uno 26 182 B Flash a 1 239 B globálnej RAM; zostáva 809 B SRAM. Mega používa 40 222 B Flash a 4 277 B RAM; zostáva 3 915 B RAM. SD BLACK BOX obsah ani 512 B cache sa nemenili. Následný bench test 22. 8. 2026 fyzicky potvrdil prevádzku V4; uvedené pamäťové hodnoty zostávajú z kontrolnej kompilácie.
 
@@ -762,7 +762,7 @@ Hlavné programy Mega a Uno od 21. 8. 2026 priamo riadia fyzicky overené H/L re
 
 Diagnostika oboch dosiek zobrazuje `SMART_STABLE=BLOCKED`, priebeh `SMART_STABLE=n/180s` alebo `SMART_STABLE=READY`. Zmena stabilizácie používa krátke `EVENT:`/`RECOVERY:` riadky bez blokovania hlavného programu.
 
-Táto prvá implementácia zatiaľ neimplementuje autonómne ovládanie BASIC_R1–R4, LOW WATER, automatický reset druhej dosky, RESET_LOCKOUT, motorový dead-time ani ďalšie safety podmienky. Fyzicky sú BASIC_R1/R2 vložené do motorových ciest a BASIC_R3 do 12 V napájacej cesty W1209 cez pokojový `COM–NC`; BASIC_R4 zostáva nezapojenou rezervou. UART/V5 je podmienkou aktuálneho základného agreement, ale stále nie je finálnym samostatným safety heartbeat prvkom. XKC commissioning bity agreement nijako nemenia.
+Táto implementácia stále neovláda autonómne BASIC_R1–R4, automatický reset druhej dosky, RESET_LOCKOUT, motorový dead-time ani ďalšie neschválené safety podmienky. LOW WATER XKC Safety V1 je implementovaný oddelene: každý lokálny kanál po 5 s aktivuje vlastný TOTAL STOP. Fyzicky sú BASIC_R1/R2 vložené do motorových ciest a BASIC_R3 do 12 V napájacej cesty W1209 cez pokojový `COM–NC`; BASIC_R4 zostáva nezapojenou rezervou. UART/V5 je podmienkou aktuálneho základného agreement, ale nie je potrebný pre lokálny XKC trip a stále nie je finálnym samostatným safety heartbeat prvkom. XKC telemetrické bity agreement nijako nemenia.
 
 ## Vrstva 2 – LOW WATER FIL/SOLAR
 
@@ -774,7 +774,11 @@ Fyzické meranie samotného XKC potvrdilo: voda prítomná/LED ON dáva na žlto
 
 Mega D30 a Uno A2 majú každý vlastný optočlenový kanál. PC817 sa nevracia do Mega↔Uno UART; dátová linka zostáva priame TTL cez 10 kΩ pri 38400 Bd.
 
-Dve optočlenové cesty poskytujú nezávislé čítanie a interpretáciu procesormi, ale nevytvárajú druhý fyzický snímač: XKC zostáva spoločným sensing elementom. Fyzický commissioning oboch MCU ciest a V5 prenosu je uzavretý ako PASS: zhodné WATER aj LOW_WATER dávajú `XKC_CONFLICT=NO`, rozpojenie jedného kanála dáva `XKC_CONFLICT=YES` a otvorený vstup smeruje na LOW_WATER. Implementácia zostáva striktne `MONITORING-ONLY`: lokálny stav, čerstvý vzdialený stav alebo `STALE` a diagnostický konflikt. XKC neaktivuje D32/A0 TOTAL STOP, nemení `SYSTEM_MODE`, `megaStav`, agreement ani `aktualnyUnoStav()`, neblokuje filtráciu/solár a nezasahuje do BASIC. Safety autorita sa môže doplniť iba po samostatnom výslovnom schválení.
+Dve optočlenové cesty poskytujú nezávislé čítanie a interpretáciu procesormi, ale nevytvárajú druhý fyzický snímač: XKC zostáva spoločným sensing elementom. Fyzický commissioning oboch MCU vstupov a V5 prenosu je uzavretý ako PASS: zhodné WATER aj LOW_WATER dávajú `XKC_CONFLICT=NO`, rozpojenie jedného kanála dáva `XKC_CONFLICT=YES` a otvorený vstup smeruje na LOW_WATER.
+
+XKC Safety V1 používa na oboch doskách rovnaký neblokujúci stavový automat cez `millis()`: lokálny HIGH/LOW WATER musí trvať súvisle aspoň 5 000 ms, potom sa nastaví lokálny trip; kratší impulz sa zahodí a návrat na WATER potvrdzovací čas vynuluje. Mega trip aktivuje D32 a `explicitnySystemStopAktivny()` ho mapuje na `MODE_STOP`. Uno trip aktivuje A0 bez závislosti od Mega, UART alebo agreement. Po tripe musí lokálny WATER trvať súvisle 10 000 ms; až potom sa trip a vlastný TOTAL STOP uvoľnia, bez priameho štartu filtrácie alebo soláru. Prerušené recovery sa vynuluje. `TOTAL_STOP_REQUEST` každej dosky sa agreguje na jednom mieste; dnes je jeho jediným schváleným dôvodom príslušný lokálny XKC trip a budúce dôvody sa smú dopĺňať iba explicitným OR.
+
+Vzdialený XKC stav a `XKC_CONFLICT` zostávajú diagnostické. Konflikt sám nevytvára osobitný trip, ale lokálny 5 s LOW WATER aktivuje príslušnú dosku aj počas konfliktu. XKC nemení `megaStav`, D31/D9 agreement, `aktualnyUnoStav()`, BASIC_R1–R4, W1209 ani R9/R10. V5 layout, časovanie, CRC a sekvencie sa nemenia. Fyzický commissioning automatickej TOTAL STOP akcie pri bazéne ešte čaká.
 
 Filtrácia má dve blokovacie relé v sérii: jedno ovláda Mega, druhé Uno. Solár má rovnakú dvojicu. Ich logika je odlišná od SMART/BASIC:
 
@@ -813,7 +817,7 @@ Fyzické kanály 5–16 zostávajú vyhradené Mega/SMART. Aktívne sú dnes iba
 
 1. HY-SRF05 Uno: fyzicky testovaný na D3/D4; nezávislý monitorovací senzor.
 2. HY-SRF05 Mega: fyzicky funkčne overený na D38 TRIG/D39 ECHO meraním približne 19,3–19,8 cm; nezávislý monitorovací senzor s monitor-only kódom.
-3. XKC-Y25-NPN: jeden spoločný LOW WATER sensing element, fyzicky čítaný cez dve samostatné optočlenové cesty na Mega D30 a Uno A2; WATER, LOW_WATER, konflikt kanálov, otvorený vstup aj V5 prenos majú fyzický commissioning PASS. Nejde o dva fyzicky redundantné snímače a naďalej je iba monitoring-only bez safety autority.
+3. XKC-Y25-NPN: jeden spoločný LOW WATER sensing element, fyzicky čítaný cez dve samostatné optočlenové cesty na Mega D30 a Uno A2; WATER, LOW_WATER, konflikt kanálov, otvorený vstup aj V5 prenos majú fyzický commissioning PASS. Nejde o dva fyzicky redundantné snímače. Každý lokálny kanál má XKC Safety V1 autoritu nad vlastným TOTAL STOP po 5 s potvrdení a 10 s WATER recovery; automatická akcia ešte čaká na fyzický bazénový test.
 
 MEGA_SONAR a UNO_SONAR sú zatiaľ iba dvojica nezávislých monitorovacích senzorov. Nesmú sa používať na rozhodovanie o hladine, LOW WATER ani dopúšťaní, kým nebude fyzicky hotová finálna vyrovnávacia nádoba, referenčná geometria a kalibrácia.
 
@@ -1110,7 +1114,7 @@ Zatiaľ nie sú potvrdené a nesmú sa domýšľať:
 
 - piny budúcich, zatiaľ neschválených funkcií Mega/Uno; dnešné D30/D31/D32/D33 a Uno A0/A2/D9 sú pridelené podľa PINOUT;
 - budúca samostatná safety heartbeat vrstva; aktuálna Mega↔Uno UART vrstva je priame TTL 38400 Bd cez dva sériové 10 kΩ odpory, spoločnú GND a bez spoločného +5 V;
-- presné svorky a budúce safety potvrdzovanie XKC; dnešná MCU polarita commissioning vstupov je `LOW = WATER`, `HIGH = LOW_WATER / DRY / otvorená cesta`;
+- fyzický bazénový commissioning automatickej XKC Safety V1 reakcie D30→D32 a A2→A0; logika je implementovaná ako 5 s LOW WATER confirm a 10 s WATER recovery, polarita je `LOW = WATER`, `HIGH = LOW_WATER / DRY / otvorená cesta`;
 - autonómna BASIC logika a podmienky BASIC_R3/R4;
 - prípadné budúce použitie skladovaného ESP-01S zostáva `NEURČENÉ`;
 - fyzický test druhej MicroSD vrstvy plánovanej pre Mega;
