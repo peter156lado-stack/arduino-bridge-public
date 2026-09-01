@@ -6,6 +6,8 @@ Aktualizované: 2026-08-22
 
 Dokument vychádza z projektov bazenova_automatika (Mega), bazenova_automatika uno (Uno), bazen_wifi (onboard ESP8266), potvrdených fyzických testov a nákupných zoznamov.
 
+Otvorené auditné nálezy a stav ich riešenia: AUDIT_BACKLOG.md
+
 V dokumentácii používame:
 
 - MEGA_T1 až MEGA_T4 pre procesné senzory Mega;
