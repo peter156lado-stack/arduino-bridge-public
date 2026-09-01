@@ -130,6 +130,7 @@ void loop() {
   aktualizujRotaciuHMI();
   aktualizujWifiLink();
   aktualizujMegaXkc();
+  aktualizujMegaTotalStopVystup();
   aktualizujMegaSonar();
   aktualizujUnoLink();
   if (testR9Aktivny) {

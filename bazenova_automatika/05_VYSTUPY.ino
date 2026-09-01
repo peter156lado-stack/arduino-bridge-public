@@ -41,6 +41,17 @@ extern bool testR9Aktivny;
 // test sa pripocitavaju samostatne, aby ich vlastne casovace zostali nezavisle.
 bool filtraciaZakladnaPoziadavka = false;
 
+// Jediny agregacny bod runtime poziadavky pre D32. Dalsie samostatne
+// schvalene explicitne TOTAL STOP dovody sa smu v buducnosti pridat iba OR.
+bool megaTotalStopRequest() {
+  return megaXkcTrip;
+}
+
+// Jediny zapisovatel fyzickeho MEGA_TOTAL_STOP vystupu.
+void aktualizujMegaTotalStopVystup() {
+  digitalWrite(MEGA_TOTAL_STOP_PIN, megaTotalStopRequest() ? HIGH : LOW);
+}
+
 enum FiltraciaNapajanieStav : byte {
   FIL_RUN_NORMAL,
   FIL_RESET_OFF
@@ -58,11 +69,10 @@ unsigned long filtraciaResetOffOdMs = 0;
 
 void inicializaciaVystupov() {
 
-  // Energize-to-trip moduly: LOW zapisany este pred OUTPUT je bezpecny
-  // boot/reset stav. Automaticke fault podmienky zatial nie su implementovane.
-  digitalWrite(MEGA_TOTAL_STOP_PIN, LOW);
+  // Energize-to-trip: bez potvrdeneho XKC tripu je boot/reset LOW / COM-NC.
+  aktualizujMegaTotalStopVystup();
   pinMode(MEGA_TOTAL_STOP_PIN, OUTPUT);
-  digitalWrite(MEGA_TOTAL_STOP_PIN, LOW);
+  aktualizujMegaTotalStopVystup();
 
   // W1209 supervision ma autoritu iba v budúcom explicitnom BASIC mode.
   // Aktualny kod nema autoritativny SYSTEM_MODE ani potvrdenie realneho

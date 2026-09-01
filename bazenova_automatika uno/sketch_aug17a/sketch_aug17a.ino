@@ -14,10 +14,12 @@ const byte MEGA_LINK_RX_PIN = 7;
 const byte MEGA_LINK_TX_PIN = 8;
 // Prva fyzicka implementacia SMART agreement. HIGH = COM-NO, LOW = COM-NC.
 const byte UNO_HL_RELAY_1_PIN = 9;
-// UNO_TOTAL_STOP: buduca vedoma safety autorita. Boot/default = LOW / COM-NC.
+// UNO_TOTAL_STOP: lokalna XKC safety autorita. Boot/default = LOW / COM-NC.
 const byte UNO_TOTAL_STOP_PIN = A0;
-// XKC commissioning vstup cez samostatny PC817/HY-M154 kanal.
+// XKC vstup cez samostatny PC817/HY-M154 kanal.
 const byte UNO_XKC_PIN = A2;
+const unsigned long XKC_LOW_WATER_CONFIRM_MS = 5000UL;
+const unsigned long XKC_WATER_RECOVERY_MS = 10000UL;
 
 const unsigned long TEMPERATURE_INTERVAL_MS = 5300UL;
 // Po vypadku napajania sa DS18B20 vrati na 12 bit (max. 750 ms).
@@ -59,20 +61,101 @@ SoftwareSerial megaLinkSerial(MEGA_LINK_RX_PIN, MEGA_LINK_TX_PIN, false);
 
 bool unoXkcLowWater = false;
 bool unoXkcInicializovany = false;
+bool unoXkcTrip = false;
+bool unoXkcConfirmBezi = false;
+bool unoXkcRecoveryBezi = false;
+unsigned long unoXkcConfirmOdMs = 0;
+unsigned long unoXkcRecoveryOdMs = 0;
 
 void aktualizujUnoXkc() {
+  const unsigned long teraz = millis();
   const bool novyLowWater = digitalRead(UNO_XKC_PIN) == HIGH;
 
   if (!unoXkcInicializovany) {
     unoXkcLowWater = novyLowWater;
     unoXkcInicializovany = true;
+    if (unoXkcLowWater) {
+      unoXkcConfirmBezi = true;
+      unoXkcConfirmOdMs = teraz;
+    }
     return;
   }
 
-  if (novyLowWater == unoXkcLowWater) return;
-  unoXkcLowWater = novyLowWater;
-  Serial.println(unoXkcLowWater ? F("EVENT: UNO_XKC=LOW_WATER")
-                               : F("RECOVERY: UNO_XKC=WATER"));
+  if (novyLowWater != unoXkcLowWater) {
+    unoXkcLowWater = novyLowWater;
+    Serial.println(unoXkcLowWater ? F("EVENT: UNO_XKC=LOW_WATER")
+                                 : F("RECOVERY: UNO_XKC=WATER"));
+  }
+
+  if (!unoXkcTrip) {
+    unoXkcRecoveryBezi = false;
+    unoXkcRecoveryOdMs = 0;
+
+    if (!unoXkcLowWater) {
+      unoXkcConfirmBezi = false;
+      unoXkcConfirmOdMs = 0;
+      return;
+    }
+
+    if (!unoXkcConfirmBezi) {
+      unoXkcConfirmBezi = true;
+      unoXkcConfirmOdMs = teraz;
+      Serial.println(F("EVENT: UNO_XKC_LOW_WATER_CONFIRM_START"));
+    }
+
+    if (teraz - unoXkcConfirmOdMs >= XKC_LOW_WATER_CONFIRM_MS) {
+      unoXkcTrip = true;
+      unoXkcConfirmBezi = false;
+      unoXkcConfirmOdMs = 0;
+      Serial.println(F("EVENT: UNO_XKC_TRIP"));
+    }
+    return;
+  }
+
+  unoXkcConfirmBezi = false;
+  unoXkcConfirmOdMs = 0;
+
+  if (unoXkcLowWater) {
+    unoXkcRecoveryBezi = false;
+    unoXkcRecoveryOdMs = 0;
+    return;
+  }
+
+  if (!unoXkcRecoveryBezi) {
+    unoXkcRecoveryBezi = true;
+    unoXkcRecoveryOdMs = teraz;
+    Serial.println(F("RECOVERY: UNO_XKC_WATER_CONFIRM_START"));
+  }
+
+  if (teraz - unoXkcRecoveryOdMs >= XKC_WATER_RECOVERY_MS) {
+    unoXkcTrip = false;
+    unoXkcRecoveryBezi = false;
+    unoXkcRecoveryOdMs = 0;
+    Serial.println(F("RECOVERY: UNO_XKC_TRIP_CLEAR"));
+  }
+}
+
+unsigned long unoXkcConfirmSekundy() {
+  if (!unoXkcConfirmBezi || unoXkcTrip) return 0;
+  const unsigned long sekundy = (millis() - unoXkcConfirmOdMs) / 1000UL;
+  return sekundy > 5UL ? 5UL : sekundy;
+}
+
+unsigned long unoXkcRecoverySekundy() {
+  if (!unoXkcRecoveryBezi || !unoXkcTrip) return 0;
+  const unsigned long sekundy = (millis() - unoXkcRecoveryOdMs) / 1000UL;
+  return sekundy > 10UL ? 10UL : sekundy;
+}
+
+// Jediny agregacny bod runtime poziadavky pre A0. Dalsie samostatne
+// schvalene explicitne TOTAL STOP dovody sa smu v buducnosti pridat iba OR.
+bool unoTotalStopRequest() {
+  return unoXkcTrip;
+}
+
+// Jediny zapisovatel fyzickeho UNO_TOTAL_STOP vystupu.
+void aktualizujUnoTotalStopVystup() {
+  digitalWrite(UNO_TOTAL_STOP_PIN, unoTotalStopRequest() ? HIGH : LOW);
 }
 
 // Fixne ROM adresy fyzicky otestovanych snimacov.
@@ -943,8 +1026,15 @@ void vypisDiagnostiku() {
   else
     Serial.print(F("STALE"));
   Serial.print(F(" XKC_CONFLICT="));
-  if (!MEGA_RESULT_VALID) Serial.println(F("NA"));
-  else Serial.println(unoXkcConflict() ? F("YES") : F("NO"));
+  if (!MEGA_RESULT_VALID) Serial.print(F("NA"));
+  else Serial.print(unoXkcConflict() ? F("YES") : F("NO"));
+  Serial.print(F(" XKC_CONFIRM="));
+  Serial.print(unoXkcConfirmSekundy());
+  Serial.print(F("s XKC_TRIP="));
+  Serial.print(unoXkcTrip ? F("YES") : F("NO"));
+  Serial.print(F(" XKC_RECOVERY="));
+  Serial.print(unoXkcRecoverySekundy());
+  Serial.println(F("s"));
 
   Serial.print(F("T1="));
   if (T1_OK) { Serial.print(teplotaT1, 2); Serial.print(F(" OK")); }
@@ -979,11 +1069,16 @@ void setup() {
   pinMode(UNO_XKC_PIN, INPUT_PULLUP);
   unoXkcLowWater = digitalRead(UNO_XKC_PIN) == HIGH;
   unoXkcInicializovany = true;
+  unoXkcTrip = false;
+  unoXkcConfirmBezi = unoXkcLowWater;
+  unoXkcConfirmOdMs = unoXkcLowWater ? millis() : 0;
+  unoXkcRecoveryBezi = false;
+  unoXkcRecoveryOdMs = 0;
 
-  // Fail-safe boot: bez schvalenej TOTAL STOP podmienky zostava COM-NC.
-  digitalWrite(UNO_TOTAL_STOP_PIN, LOW);
+  // Energize-to-trip: bez potvrdeneho XKC tripu je boot/reset LOW / COM-NC.
+  aktualizujUnoTotalStopVystup();
   pinMode(UNO_TOTAL_STOP_PIN, OUTPUT);
-  digitalWrite(UNO_TOTAL_STOP_PIN, LOW);
+  aktualizujUnoTotalStopVystup();
 
   // Fail-safe boot: agreement je zakazane skor, nez sa spusti V5 linka.
   digitalWrite(UNO_HL_RELAY_1_PIN, LOW);
@@ -1022,6 +1117,7 @@ void loop() {
   aktualizujTeploty();
   aktualizujSonar();
   aktualizujUnoXkc();
+  aktualizujUnoTotalStopVystup();
   aktualizujMegaLinkTest();
   vypisDiagnostiku();
   aktualizujSDRecovery();

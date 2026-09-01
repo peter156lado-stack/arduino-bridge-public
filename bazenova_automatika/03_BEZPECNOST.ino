@@ -34,12 +34,13 @@ extern bool MEGA_T2_SUSPECT;
 extern bool UNO_T2_SUSPECT;
 extern bool unoLinkStavOk;
 extern bool XKC_CONFLICT;
+extern bool megaXkcTrip;
 bool megaSmartPodmienkyOk();
 
-// MODE_STOP je sucastou autoritativnej architektury, ale ziadna konkretna
-// automaticka STOP podmienka zatial nebola schvalena ani implementovana.
+// Lokalny potvrdeny XKC trip je explicitna STOP podmienka Mega. Vzdialeny
+// XKC stav ani diagnosticky konflikt sem nevstupuju.
 bool explicitnySystemStopAktivny() {
-  return false;
+  return megaXkcTrip;
 }
 
 const __FlashStringHelper *nazovSystemMode(SystemMode mode) {
@@ -377,8 +378,15 @@ void bezpecnost() {
   else
     Serial.print(F("STALE"));
   Serial.print(F(" XKC_CONFLICT="));
-  if (!unoRemoteXkcPlatny()) Serial.println(F("NA"));
-  else Serial.println(XKC_CONFLICT ? F("YES") : F("NO"));
+  if (!unoRemoteXkcPlatny()) Serial.print(F("NA"));
+  else Serial.print(XKC_CONFLICT ? F("YES") : F("NO"));
+  Serial.print(F(" XKC_CONFIRM="));
+  Serial.print(megaXkcConfirmSekundy());
+  Serial.print(F("s XKC_TRIP="));
+  Serial.print(megaXkcTrip ? F("YES") : F("NO"));
+  Serial.print(F(" XKC_RECOVERY="));
+  Serial.print(megaXkcRecoverySekundy());
+  Serial.println(F("s"));
 
   Serial.print("REMOTE: UNO_T1=");
   if (unoRemoteT1Platna()) Serial.print(unoRemoteT1Hodnota());

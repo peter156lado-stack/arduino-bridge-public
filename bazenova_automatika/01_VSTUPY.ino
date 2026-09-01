@@ -17,26 +17,98 @@ OneWire oneWire(ONE_WIRE_BUS);
 DallasTemperature sensors(&oneWire);
 
 // --------------------------------------------------
-// XKC-Y25-NPN LOW WATER - COMMISSIONING MONITOR
+// XKC-Y25-NPN LOW WATER - LOKALNA SAFETY VETVA
 // --------------------------------------------------
 
 const byte MEGA_XKC_PIN = 30;
+const unsigned long XKC_LOW_WATER_CONFIRM_MS = 5000UL;
+const unsigned long XKC_WATER_RECOVERY_MS = 10000UL;
 bool megaXkcLowWater = false;
 bool megaXkcInicializovany = false;
+bool megaXkcTrip = false;
+bool megaXkcConfirmBezi = false;
+bool megaXkcRecoveryBezi = false;
+unsigned long megaXkcConfirmOdMs = 0;
+unsigned long megaXkcRecoveryOdMs = 0;
 
 void aktualizujMegaXkc() {
+  const unsigned long teraz = millis();
   const bool novyLowWater = digitalRead(MEGA_XKC_PIN) == HIGH;
 
   if (!megaXkcInicializovany) {
     megaXkcLowWater = novyLowWater;
     megaXkcInicializovany = true;
+    if (megaXkcLowWater) {
+      megaXkcConfirmBezi = true;
+      megaXkcConfirmOdMs = teraz;
+    }
     return;
   }
 
-  if (novyLowWater == megaXkcLowWater) return;
-  megaXkcLowWater = novyLowWater;
-  Serial.println(megaXkcLowWater ? F("EVENT: MEGA_XKC=LOW_WATER")
-                                : F("RECOVERY: MEGA_XKC=WATER"));
+  if (novyLowWater != megaXkcLowWater) {
+    megaXkcLowWater = novyLowWater;
+    Serial.println(megaXkcLowWater ? F("EVENT: MEGA_XKC=LOW_WATER")
+                                  : F("RECOVERY: MEGA_XKC=WATER"));
+  }
+
+  if (!megaXkcTrip) {
+    megaXkcRecoveryBezi = false;
+    megaXkcRecoveryOdMs = 0;
+
+    if (!megaXkcLowWater) {
+      megaXkcConfirmBezi = false;
+      megaXkcConfirmOdMs = 0;
+      return;
+    }
+
+    if (!megaXkcConfirmBezi) {
+      megaXkcConfirmBezi = true;
+      megaXkcConfirmOdMs = teraz;
+      Serial.println(F("EVENT: MEGA_XKC_LOW_WATER_CONFIRM_START"));
+    }
+
+    if (teraz - megaXkcConfirmOdMs >= XKC_LOW_WATER_CONFIRM_MS) {
+      megaXkcTrip = true;
+      megaXkcConfirmBezi = false;
+      megaXkcConfirmOdMs = 0;
+      Serial.println(F("EVENT: MEGA_XKC_TRIP"));
+    }
+    return;
+  }
+
+  megaXkcConfirmBezi = false;
+  megaXkcConfirmOdMs = 0;
+
+  if (megaXkcLowWater) {
+    megaXkcRecoveryBezi = false;
+    megaXkcRecoveryOdMs = 0;
+    return;
+  }
+
+  if (!megaXkcRecoveryBezi) {
+    megaXkcRecoveryBezi = true;
+    megaXkcRecoveryOdMs = teraz;
+    Serial.println(F("RECOVERY: MEGA_XKC_WATER_CONFIRM_START"));
+  }
+
+  if (teraz - megaXkcRecoveryOdMs >= XKC_WATER_RECOVERY_MS) {
+    megaXkcTrip = false;
+    megaXkcRecoveryBezi = false;
+    megaXkcRecoveryOdMs = 0;
+    Serial.println(F("RECOVERY: MEGA_XKC_TRIP_CLEAR"));
+  }
+}
+
+unsigned long megaXkcConfirmSekundy() {
+  if (!megaXkcConfirmBezi || megaXkcTrip) return 0;
+  const unsigned long sekundy = (millis() - megaXkcConfirmOdMs) / 1000UL;
+  return sekundy > 5UL ? 5UL : sekundy;
+}
+
+unsigned long megaXkcRecoverySekundy() {
+  if (!megaXkcRecoveryBezi || !megaXkcTrip) return 0;
+  const unsigned long sekundy = (millis() - megaXkcRecoveryOdMs) / 1000UL;
+  return sekundy > 10UL ? 10UL : sekundy;
 }
 
 // --------------------------------------------------
@@ -685,6 +757,11 @@ void inicializaciaVstupov() {
   pinMode(MEGA_XKC_PIN, INPUT_PULLUP);
   megaXkcLowWater = digitalRead(MEGA_XKC_PIN) == HIGH;
   megaXkcInicializovany = true;
+  megaXkcTrip = false;
+  megaXkcConfirmBezi = megaXkcLowWater;
+  megaXkcConfirmOdMs = megaXkcLowWater ? millis() : 0;
+  megaXkcRecoveryBezi = false;
+  megaXkcRecoveryOdMs = 0;
 
   pinMode(MEGA_SONAR_TRIG_PIN, OUTPUT);
   pinMode(MEGA_SONAR_ECHO_PIN, INPUT);
