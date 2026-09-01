@@ -311,6 +311,14 @@ bool teplotaJePlatna(float hodnota) {
          hodnota <= 125.0f;
 }
 
+bool teplotaBazenaJePlatna(float hodnota) {
+  return teplotaJePlatna(hodnota) && hodnota > -10.0f && hodnota < 60.0f;
+}
+
+bool teplotaSolarJePlatna(float hodnota) {
+  return teplotaJePlatna(hodnota) && hodnota > -10.0f && hodnota < 100.0f;
+}
+
 byte linkCrc8(const byte *data, byte dlzka) {
   byte crc = 0;
   for (byte i = 0; i < dlzka; i++) {
@@ -388,6 +396,10 @@ void prijmiMegaRamec() {
   }
   MegaVysledok novy;
   const byte validity = megaLinkRxBuffer[7];
+  if ((validity & 0xF8) != 0) {
+    megaFrameInvalid++;
+    return;
+  }
   novy.sekvencia = citajU16(megaLinkRxBuffer, 5);
   novy.poolOk = validity & 0x01;
   novy.t2Ok = validity & 0x02;
@@ -628,15 +640,15 @@ void aktualizujTeploty() {
 
   // Kazdy snimac sa cita a vyhodnocuje samostatne.
   teplotaT1 = sensors.getTempC(T1_ADDRESS);
-  T1_OK = teplotaJePlatna(teplotaT1);
+  T1_OK = teplotaBazenaJePlatna(teplotaT1);
   T1_CHYBA = !T1_OK;
 
   teplotaT2 = sensors.getTempC(T2_ADDRESS);
-  T2_OK = teplotaJePlatna(teplotaT2);
+  T2_OK = teplotaSolarJePlatna(teplotaT2);
   T2_CHYBA = !T2_OK;
 
   teplotaT3 = sensors.getTempC(T3_ADDRESS);
-  T3_OK = teplotaJePlatna(teplotaT3);
+  T3_OK = teplotaSolarJePlatna(teplotaT3);
   T3_CHYBA = !T3_OK;
 
   teplotaTBOX = sensors.getTempC(TBOX_ADDRESS);

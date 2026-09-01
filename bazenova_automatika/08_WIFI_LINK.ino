@@ -8,7 +8,7 @@
 const unsigned long WIFI_BAUD = 115200UL;
 const unsigned long WIFI_DATA_INTERVAL = 1000UL;
 const size_t WIFI_RX_BUFFER_VELKOST = 48;
-// Web telemetry additions only; the Mega<->Uno V4 frames and safety behaviour stay unchanged.
+// Web telemetry additions only; the Mega<->Uno V5 frames and safety behaviour stay unchanged.
 const size_t WIFI_TX_BUFFER_VELKOST = 512;
 
 char wifiRxBuffer[WIFI_RX_BUFFER_VELKOST];
@@ -70,7 +70,7 @@ void pripravWifiData() {
   wifiPridajText(";RH=");
   wifiPridajFloat(vlhkostVonku, aht10Dostupny);
   wifiPridajText(";BAZEN=");
-  wifiPridajFloat(teplotaBazena, T1_OK || T4_OK);
+  wifiPridajFloat(teplotaBazena, POOL_TEMP_VALID);
   wifiPridajText(";SET=");
   wifiPridajFloat(MAX_BAZEN, true);
   wifiPridajText(";SETMIN=");

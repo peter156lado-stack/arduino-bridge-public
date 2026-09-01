@@ -37,6 +37,14 @@ extern bool XKC_CONFLICT;
 extern bool megaXkcTrip;
 bool megaSmartPodmienkyOk();
 
+bool teplotaBazenaJePlatna(float hodnota) {
+  return hodnota > -10.0f && hodnota < 60.0f;
+}
+
+bool teplotaSolarJePlatna(float hodnota) {
+  return hodnota > -10.0f && hodnota < 100.0f;
+}
+
 // Lokalny potvrdeny XKC trip je explicitna STOP podmienka Mega. Vzdialeny
 // XKC stav ani diagnosticky konflikt sem nevstupuju.
 bool explicitnySystemStopAktivny() {
@@ -112,6 +120,7 @@ void vypisSystemMode() {
 
 enum MegaProblemKod : byte {
   MEGA_PROBLEM_NONE,
+  MEGA_PROBLEM_XKC_TOTAL_STOP,
   MEGA_PROBLEM_T1,
   MEGA_PROBLEM_T2,
   MEGA_PROBLEM_T3,
@@ -142,6 +151,7 @@ byte megaProblemPodlaPoradia(byte hladanePoradie) {
   byte poradie = 0;
 #define VYBER_PROBLEM(podmienka, kod) \
   do { if (podmienka) { if (poradie == hladanePoradie) return kod; poradie++; } } while (0)
+  VYBER_PROBLEM(megaXkcTrip, MEGA_PROBLEM_XKC_TOTAL_STOP);
   VYBER_PROBLEM(!T1_OK, MEGA_PROBLEM_T1);
   VYBER_PROBLEM(!T2_OK, MEGA_PROBLEM_T2);
   VYBER_PROBLEM(!T3_OK, MEGA_PROBLEM_T3);
@@ -230,10 +240,10 @@ void bezpecnost() {
   // KONTROLA ROZSAHU SENZOROV
   // ------------------------------------------------
 
-  T1_OK = (t1 > -10 && t1 < 60);
-  T2_OK = (t2 > -10 && t2 < 100);
-  T3_OK = (t3 > -10 && t3 < 100);
-  T4_OK = T4_ADRESA_NASTAVENA && (t4 > -10 && t4 < 60);
+  T1_OK = teplotaBazenaJePlatna(t1);
+  T2_OK = teplotaSolarJePlatna(t2);
+  T3_OK = teplotaSolarJePlatna(t3);
+  T4_OK = T4_ADRESA_NASTAVENA && teplotaBazenaJePlatna(t4);
 
   // ------------------------------------------------
   // CELKOVÝ STAV SYSTÉMU

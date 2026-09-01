@@ -65,14 +65,16 @@ void vykresliPrevadzkuLCD() {
   vymazRiadokLCD(2);
   lcd.setCursor(0, 2);
 
-  if (!system_OK) {
-    lcd.print("SYS:ERR");
-  }
-  else if (systemDegradovany) {
-    lcd.print("SYS:DEG");
+  if (megaXkcTrip) {
+    lcd.print(F("SYS:STOP"));
   }
   else {
-    lcd.print("SYS:OK");
+    switch (systemMode) {
+      case MODE_STOP: lcd.print(F("SYS:STOP")); break;
+      case MODE_BASIC: lcd.print(F("SYS:BASIC")); break;
+      case MODE_DEGRADED: lcd.print(F("SYS:DEG")); break;
+      case MODE_SMART: lcd.print(F("SYS:OK")); break;
+    }
   }
 
   lcd.print(" SET:");
@@ -214,6 +216,7 @@ void vykresliManualneRezimyLCD() {
 
 void vypisProblemNaLCD(byte kod) {
   switch (kod) {
+    case MEGA_PROBLEM_XKC_TOTAL_STOP: lcd.print(F("XKC LOW WATER STOP")); break;
     case MEGA_PROBLEM_T1: lcd.print(F("T1 CHYBA")); break;
     case MEGA_PROBLEM_T2: lcd.print(F("T2 CHYBA")); break;
     case MEGA_PROBLEM_T3: lcd.print(F("T3 CHYBA")); break;
@@ -251,7 +254,8 @@ void vykresliPoruchyLCD() {
   lcd.setCursor(0, 1);
   const byte pocet = pocetMegaProblemov();
   if (pocet == 0) {
-    lcd.print(F("ZIADNA AKTIVNA"));
+    if (systemMode == MODE_STOP) lcd.print(F("TOTAL STOP AKTIVNY"));
+    else lcd.print(F("ZIADNA AKTIVNA"));
   }
   else {
     vypisProblemNaLCD(megaProblemPodlaPoradia(0));
@@ -271,9 +275,17 @@ void vykresliPoruchyLCD() {
   vymazRiadokLCD(3);
   lcd.setCursor(0, 3);
   lcd.print(F("SYSTEM: "));
-  if (!system_OK) lcd.print(F("HAVARIA"));
-  else if (systemDegradovany) lcd.print(F("DEGRADED"));
-  else lcd.print(F("OK"));
+  if (megaXkcTrip) {
+    lcd.print(F("STOP"));
+  }
+  else {
+    switch (systemMode) {
+      case MODE_STOP: lcd.print(F("STOP")); break;
+      case MODE_BASIC: lcd.print(F("BASIC")); break;
+      case MODE_DEGRADED: lcd.print(F("DEGRADED")); break;
+      case MODE_SMART: lcd.print(F("OK")); break;
+    }
+  }
 }
 
 void vykresliAktualnuObrazovkuLCD() {

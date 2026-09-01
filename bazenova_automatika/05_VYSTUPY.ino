@@ -81,11 +81,12 @@ void inicializaciaVystupov() {
   pinMode(W1209_SUPERVISION_RELAY_PIN, OUTPUT);
   digitalWrite(W1209_SUPERVISION_RELAY_PIN, LOW);
 
-  pinMode(R9, OUTPUT);
-  pinMode(R10, OUTPUT);
-
   // Bezpečný základný stav
   // HIGH = relé VYPNUTÉ
+  digitalWrite(R9, HIGH);
+  digitalWrite(R10, HIGH);
+  pinMode(R9, OUTPUT);
+  pinMode(R10, OUTPUT);
   digitalWrite(R9, HIGH);
   filtraciaZapnuta = false;
   filtraciaZakladnaPoziadavka = false;

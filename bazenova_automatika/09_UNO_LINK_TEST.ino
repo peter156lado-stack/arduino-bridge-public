@@ -128,6 +128,10 @@ void prijmiUnoRamec() {
   }
 
   const byte validity = unoLinkRxBuffer[7];
+  if ((validity & 0xE0) != 0) {
+    unoFrameInvalid++;
+    return;
+  }
   UnoRemoteSnapshot novy;
   novy.sekvencia = citajU16(unoLinkRxBuffer, 5);
   novy.t1Ok = validity & 0x01;
@@ -199,7 +203,7 @@ void pripravMegaRamec() {
   if (POOL_TEMP_VALID) validity |= 0x01;
   if (T2_EFFECTIVE_VALID) validity |= 0x02;
   byte h, m, s, d, mo, y;
-  const bool rtcOk = nacitajRTC(h, m, s, d, mo, y);
+  const bool rtcOk = rtcCasJePlatny() && nacitajRTC(h, m, s, d, mo, y);
   if (rtcOk) validity |= 0x04;
   unoLinkTxBuffer[7] = validity;
   unoLinkTxBuffer[8] = (byte)zdrojTeplotyBazena;
@@ -375,9 +379,18 @@ void aktualizujUnoLink() {
 }
 
 unsigned long vekUnoRemoteDatMs() { return REMOTE_DATA_VALID ? millis() - unoRemotePoslednyRamecMs : 0UL; }
-bool unoRemoteT1Platna() { return REMOTE_DATA_VALID && unoRemote.t1Ok; }
-bool unoRemoteT2Platna() { return REMOTE_DATA_VALID && unoRemote.t2Ok; }
-bool unoRemoteT3Platna() { return REMOTE_DATA_VALID && unoRemote.t3Ok; }
+bool unoRemoteT1Platna() {
+  return REMOTE_DATA_VALID && unoRemote.t1Ok &&
+         teplotaBazenaJePlatna(unoRemote.t1);
+}
+bool unoRemoteT2Platna() {
+  return REMOTE_DATA_VALID && unoRemote.t2Ok &&
+         teplotaSolarJePlatna(unoRemote.t2);
+}
+bool unoRemoteT3Platna() {
+  return REMOTE_DATA_VALID && unoRemote.t3Ok &&
+         teplotaSolarJePlatna(unoRemote.t3);
+}
 bool unoRemoteTboxPlatna() { return REMOTE_DATA_VALID && unoRemote.tboxOk; }
 float unoRemoteT1Hodnota() { return unoRemote.t1; }
 float unoRemoteT2Hodnota() { return unoRemote.t2; }
