@@ -180,8 +180,10 @@ void prijmiUnoByte(byte hodnota) {
 
 byte aktualnyMegaHealthStav() {
   // Kompatibilna health/agreement telemetria, nie druha autorita SYSTEM_MODE.
-  // Schvaleny platny fallback zostava doveryhodny DEGRADED stav (1).
-  if (!POOL_TEMP_VALID || !T2_EFFECTIVE_VALID || !T3_EFFECTIVE_VALID) return 2;
+  // Stav 2 znamena iba stratu doveryhodnosti Mega/control vrstvy.
+  if (!FIL_CONTROL_VALID) return 2;
+  // systemDegradovany uz pokryva fallback/neplatny pool, T2, T3 aj bezpecne
+  // izolovany solar; tieto funkcne degradacie zostavaju doveryhodny stav 1.
   return systemDegradovany ? 1 : 0;
 }
 
