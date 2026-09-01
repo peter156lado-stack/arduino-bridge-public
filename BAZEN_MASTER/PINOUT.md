@@ -1,6 +1,6 @@
 # BAZEN MASTER – pinout
 
-Aktualizované: 2026-09-01
+Aktualizované: 2026-09-02
 
 FYZICKY OVERENÉ znamená potvrdený fyzický test. POUŽITÉ V KÓDE nepotvrdzuje montáž. REZERVOVANÉ/NAVRHOVANÉ nikdy neznamená hotové zapojenie.
 
@@ -30,9 +30,9 @@ Ostatné jednotlivé Mega piny neboli v dodaných poznámkach výslovne označen
 | D2 | I/O | 1-Wire MEGA_T1–T4 + MEGA_TBOX | päť pevných ROM; MEGA_TBOX monitor-only |
 | D14/D15 | UART | Serial3 Mega↔onboard ESP | 115200 baud |
 | D16/D17 | UART | Serial2 Mega↔Uno – priame TTL | Mega D16/TX2 → sériový 10 kΩ → Uno D7/RX; Uno D8/TX → sériový 10 kΩ → Mega D17/RX2; 38400 Bd, MASTER→REPLY, V5 24 B/22 B; spoločná GND, bez PC817, bez prepojenia +5 V medzi doskami; Uno SoftwareSerial neinvertovaný |
-| D20/D21 | I²C | DS3231, AHT10, LCD 20×4 | SDA/SCL; LCD používa 4-stranovú rotáciu 5 s, poruchová stránka pri aktívnom existujúcom probléme 30 s |
-| D22 | OUT | MEGA_R9 | filtrácia, aktívne LOW |
-| D23 | OUT | MEGA_R10 | solár/chrlič, aktívne LOW |
+| D20/D21 | I²C | DS3231, AHT10, LCD 20×4 | SDA/SCL; LCD používa autoritatívny `SystemMode`, pri lokálnom XKC tripe zobrazuje STOP a príčinu; 4-stranová rotácia 5 s, poruchová stránka pri aktívnom probléme 30 s |
+| D22 | OUT | MEGA_R9 | filtrácia, aktívne LOW; bezpečný HIGH/OFF latch sa nastaví pred `pinMode(OUTPUT)` |
+| D23 | OUT | MEGA_R10 | solár/chrlič, aktívne LOW; bezpečný HIGH/OFF latch sa nastaví pred `pinMode(OUTPUT)` |
 | D24–D29 | deklarované | MEGA_R11–R16 | bez implementovanej funkcie |
 | D30 | IN_PULLUP | MEGA_XKC | vlastný lokálny HY-M154/PC817 kanál; po 5 000 ms súvislého HIGH nastaví `MEGA_XKC_TRIP`, aktivuje D32 a Mega prejde do `MODE_STOP`; vzdialený XKC ani konflikt nerozhodujú; po tripe treba 10 000 ms súvislého WATER na recovery |
 | D31 | OUT | MEGA_AGREEMENT – fyzická watchdog/povoľovacia vetva | boot/reset LOW; platná linka + čerstvé dáta + nekritický stav Una počas 180 s → HIGH; link/stale timeout 10 s alebo kritický stav → okamžite LOW a timer od nuly; fyzická funkcia agreement logiky overená, logika sa nemení |
@@ -151,7 +151,7 @@ Lokálna softvérová migrácia je implementovaná a fyzicky potvrdená: meranie
 | Pin | Smer | Funkcia | Poznámka |
 |---:|---|---|---|
 | D0/D1 | UART | USB hardvérový Serial diagnostika | 115200 Bd |
-| D2 | I/O | UNO_T1/UNO_T2/UNO_T3/UNO_TBOX | štyri pevné ROM fyzicky potvrdené `OK`; asynchrónne každých 5 300 ms; samostatné validity/chyby; OneWire recovery 5 000 ms zahŕňa všetky štyri senzory |
+| D2 | I/O | UNO_T1/UNO_T2/UNO_T3/UNO_TBOX | štyri pevné ROM fyzicky potvrdené `OK`; UNO_T1 validita `>-10 && <60 °C`, UNO_T2/T3 `>-10 && <100 °C`, TBOX zostáva v DS18B20 technickom rozsahu; asynchrónne každých 5 300 ms; OneWire recovery 5 000 ms |
 | D3 | OUT | Uno HY-SRF05 TRIG | neblokujúci stavový automat |
 | D4 | IN | Uno HY-SRF05 ECHO | bez pulseIn |
 | D5 | — | voľné | bývalá ESP-01S linka fyzicky odstránená |
