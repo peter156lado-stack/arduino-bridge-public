@@ -192,6 +192,7 @@ bool megaMaAktivnyProblem() {
 
 const __FlashStringHelper *nazovMegaProblemu(byte kod) {
   switch (kod) {
+    case MEGA_PROBLEM_XKC_TOTAL_STOP: return F("XKC_LOW_WATER_TOTAL_STOP");
     case MEGA_PROBLEM_T1: return F("T1_CHYBA");
     case MEGA_PROBLEM_T2: return F("T2_CHYBA");
     case MEGA_PROBLEM_T3: return F("T3_CHYBA");
