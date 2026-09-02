@@ -280,8 +280,10 @@ Táto sekcia nie je súčasťou doslovného RAW prepisu vyššie. Zachytáva fyz
 
 - Pri jednom teste Uno hlásilo agreement ON, ale na pripojenej D9 vetve bolo približne 0 V a relé nezoplo.
 - Po odpojení vodiča bolo priamo na D9 približne +5 V; po opätovnom pripojení zostala D9 HIGH a relé fungovalo. Ďalší reset/retest prešiel.
+- Po incidente boli vykonané tri samostatné cold-boot/power-cycle testy. Vo všetkých troch prebehlo UNO_SMART_STABLE korektne, po 180 s bolo UNO_AGREEMENT=ON a AGR=ON, D9 malo približne +5 V a agreement relé fyzicky zoplo.
+- Pôvodná kombinácia AGR=ON a fyzické D9 približne 0 V sa po troch cold bootoch nezopakovala.
 - Presná externá príčina zostáva nepotvrdená; možné oblasti sú H/L modul, napájanie, backfeed/power-up stav, vodič alebo spoj.
-- Stav: **OBSERVED_ONCE / WAITING_REPRODUCTION.** Bez zmeny kódu.
+- Stav: **OBSERVED_ONCE / NOT_REPRODUCED_AFTER_3_COLD_BOOTS.** Bez zmeny kódu.
 
 ### Teplotné fallbacky
 

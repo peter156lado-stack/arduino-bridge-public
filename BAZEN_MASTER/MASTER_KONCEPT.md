@@ -1116,7 +1116,7 @@ Zatiaľ nie sú potvrdené a nesmú sa domýšľať:
 
 - piny budúcich, zatiaľ neschválených funkcií Mega/Uno; dnešné D30/D31/D32/D33 a Uno A0/A2/D9 sú pridelené podľa PINOUT;
 - budúca samostatná safety heartbeat vrstva; aktuálna Mega↔Uno UART vrstva je priame TTL 38400 Bd cez dva sériové 10 kΩ odpory, spoločnú GND a bez spoločného +5 V;
-- reprodukcia jednorazového externého incidentu Uno D9, pri ktorom softvér hlásil agreement ON, ale pripojená vetva stiahla D9 približne na 0 V; presná H/L/napájacia/backfeed/spojová príčina zostáva nepotvrdená;
+- sledovanie jednorazového externého incidentu Uno D9, pri ktorom softvér hlásil agreement ON, ale pripojená vetva stiahla D9 približne na 0 V; tri následné cold-boot/power-cycle testy prešli s D9 približne +5 V a zopnutým relé, takže stav je `OBSERVED_ONCE / NOT_REPRODUCED_AFTER_3_COLD_BOOTS`, pričom presná H/L/napájacia/backfeed/spojová príčina zostáva nepotvrdená;
 - autonómna BASIC logika a podmienky BASIC_R3/R4;
 - prípadné budúce použitie skladovaného ESP-01S zostáva `NEURČENÉ`;
 - fyzický test druhej MicroSD vrstvy plánovanej pre Mega;
