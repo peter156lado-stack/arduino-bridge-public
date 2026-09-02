@@ -23,12 +23,12 @@ Tento dokument je živý register auditných nálezov, otvorených technických 
 
 | STATUS | Počet |
 |---|---:|
-| OPEN | 11 |
+| OPEN | 10 |
 | FIXED_SOFTWARE | 8 |
 | DEFERRED | 4 |
 | WAITING_PHYSICAL_TEST | 1 |
 | PLANNED | 2 |
-| ACCEPTED_RESIDUAL_RISK | 2 |
+| ACCEPTED_RESIDUAL_RISK | 3 |
 | NOT_A_PROBLEM | 0 |
 | **Spolu** | **28** |
 
@@ -67,12 +67,16 @@ Tento dokument je živý register auditných nálezov, otvorených technických 
 
 ### 4. Wi-Fi/AP secrets sú uložené priamo v ESP zdroji
 
-- **STATUS:** OPEN
+- **STATUS:** ACCEPTED_RESIDUAL_RISK
 - **Závažnosť:** CRITICAL, podmienené expozíciou
-- **Problém:** Sieťové prihlasovacie údaje sú v plaintext podobe v produkčnom ESP sketchi.
-- **Dopad:** Pri zdieľaní zdroja alebo úniku snapshotu môžu sprístupniť LAN/AP.
-- **Istota:** Uloženie v zdroji je isté; platnosť údajov a ich predchádzajúca publikácia sú **NEOVERENÉ**.
-- **Odporúčaný smer:** Overiť expozíciu, podľa potreby údaje rotovať a oddeliť lokálne secrets od publikovaného zdroja.
+- **Problém:** Sieťové prihlasovacie údaje zostávajú v plaintext podobe v lokálnom produkčnom ESP sketchi. Ide o vedomé reziduálne riziko lokálneho zdrojového súboru.
+- **Dopad:** Pri nekontrolovanom zdieľaní alebo úniku lokálneho zdroja by mohli sprístupniť LAN/AP. Kontrolovaný publisher ich však v exportnej kópii nahrádza hodnotou `REDACTED`.
+- **Overené dôkazy 2026-09-02:** Aktuálny GitHub/public snapshot neobsahuje plaintext Wi-Fi/AP credentials, publisher redaction presne zodpovedá schváleným pravidlám, secret guard nad verejným obsahom má 0 nálezov a GitHub `main` zodpovedá redigovanému lokálnemu publishovateľnému stavu. V celej dostupnej dosiahnuteľnej Git histórii nebola nájdená plaintext verzia aktuálnych lokálnych secretov. Nie je dôkaz aktuálnej verejnej expozície.
+- **Reziduálna výhrada:** Týmto auditom nemožno absolútne vylúčiť historické alebo manuálne zdieľanie mimo kontrolovaného publisher toku, napríklad force-pushed alebo dangling commity, staré ZIPy, klony, cache či manuálne odovzdané kópie.
+- **Rozhodnutie:** Okamžitá rotácia credentials nie je podľa dostupných dôkazov nutná. Ak sa objaví dôkaz expozície, audit sa znovu otvorí a credentials sa rotujú.
+- **Detail:** `NO_CURRENT_EXPOSURE_FOUND / PUBLISHER_REDACTION_CONFIRMED`
+- **Istota:** Lokálny plaintext, súčasná redakcia a absencia aktuálnej verejnej expozície sú potvrdené; absolútna historická neexpozícia mimo dostupných dát zostáva neoveriteľná.
+- **Odporúčaný smer:** Zachovať existujúcu redakciu a secret guard. Pri budúcom dôkaze expozície vykonať okamžitú rotáciu a audit znovu otvoriť.
 
 ### 5. LCD mohlo počas TOTAL STOP zobrazovať SYS:OK
 
