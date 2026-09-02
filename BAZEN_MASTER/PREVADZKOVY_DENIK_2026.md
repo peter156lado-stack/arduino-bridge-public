@@ -310,3 +310,14 @@ Táto sekcia nie je súčasťou doslovného RAW prepisu vyššie. Zachytáva fyz
 - Po recovery sa rast výrazne utíšil: CRC/INV zostali 2/4, GAP zostal dlho 10 a neskôr pribudol iba jeden na 11.
 - Záver: persistent DS18B20 fault fyzicky reprodukuje zvýšenú mieru V5/SoftwareSerial komunikačných chýb bez úplnej straty linky alebo agreement. Korelácia je silná, ale presný mechanizmus, napríklad OneWire/sensors.begin() timing kolízia so SoftwareSerial, nie je týmto testom definitívne dokázaný; jednotlivé link chyby existujú aj mimo DS fault.
 - Stav: **PHYSICALLY_REPRODUCED_SYMPTOM / ROOT_CAUSE_NOT_PROVEN.** Audit #20 zostáva OPEN a kód sa nemenil.
+
+### Audit #19 – Uno boot/run bez SD karty
+
+- Uno bolo vypnuté, SD karta bola fyzicky vybratá a Uno bolo zapnuté bez SD.
+- Boot vypísal SD: CHYBA INICIALIZACIE - LOGGER DEAKTIVOVANY a následne UNO START V5; boot supervisora pokračoval.
+- Počas behu bolo UNO=OK, LINK=OK, T1/T2/T3/TBOX, sonar aj XKC boli funkčné a iba SD zostalo v stave CHYBA.
+- Automatické pokusy SD: POKUS O OBNOVU opakovane skončili chybou inicializácie, ale počas testu nespôsobili pozorovaný reset, freeze ani link loss.
+- Link počítadlá zostali prakticky stabilné približne CRC=1, INV=0, TO=0 a GAP=1.
+- Po 180 s vzniklo RECOVERY: UNO_AGREEMENT=ON a následná diagnostika uvádzala UNO=OK LINK=OK AGR=ON SD=CHYBA.
+- Výsledok: **SD ABSENT AT BOOT / RUN = PHYSICAL PASS.** SD logger nie je podmienkou bootu, LINK, XKC ani agreement.
+- AUDIT #19 ako celok zostáva OPEN: nezmeraný je SRAM/stack watermark pri približne 796 B voľnej SRAM a worst-case runtime/SD blocking pri chybovom alebo pomalom médiu.

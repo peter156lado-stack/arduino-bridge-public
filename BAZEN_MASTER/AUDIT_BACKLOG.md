@@ -210,8 +210,15 @@ Tento dokument je živý register auditných nálezov, otvorených technických 
 - **Závažnosť:** HIGH/MEDIUM
 - **Problém:** Po kompilácii zostáva približne 796 B SRAM; SD knižnica, File objekty, buffery a stack majú runtime nároky a SD operácie môžu blokovať.
 - **Dopad:** Stack/heap kolízia alebo dlhý SD prístup môže poškodiť dáta, UART timing alebo lokálnu safety obsluhu.
-- **Istota:** Statická RAM rezerva je istá; stack watermark, worst-loop a chybové SD časy sú **NEOVERENÉ**.
+- **Istota:** Statická RAM rezerva je istá. Boot/run bez SD karty je fyzicky overený ako funkčný; stack watermark, worst-case loop a blokovanie pri chybových SD operáciách zostávajú **NEOVERENÉ**.
 - **Odporúčaný smer:** Zmerať stack watermark, SD fault timing a realistický worst-loop bez zmeny BLACK BOX schémy.
+- **Fyzická podčasť 2026-09-02:** **SD ABSENT AT BOOT / RUN = PHYSICAL PASS.**
+- **Boot bez SD:** Uno bolo zapnuté s fyzicky vybratou SD kartou. Korektne vypísalo SD: CHYBA INICIALIZACIE - LOGGER DEAKTIVOVANY a pokračovalo na UNO START V5.
+- **Beh bez SD:** UNO=OK, LINK=OK; T1/T2/T3/TBOX, sonar a XKC zostali funkčné. SD=CHYBA zostalo iba diagnostickým stavom.
+- **Automatický recovery:** Opakované SD: POKUS O OBNOVU a následné SD: CHYBA INICIALIZACIE - LOGGER DEAKTIVOVANY nespôsobili pozorovaný reset, freeze ani link loss.
+- **Link počas testu:** Počítadlá zostali prakticky stabilné približne CRC=1, INV=0, TO=0, GAP=1.
+- **Agreement:** Po 180 s normálne vzniklo RECOVERY: UNO_AGREEMENT=ON a následne UNO=OK LINK=OK AGR=ON SD=CHYBA.
+- **Rozsah potvrdenia:** Neprítomnosť SD nebráni bootu ani prevádzke Uno supervisora a SD logger nie je podmienkou LINK, XKC ani agreement. Tento čiastkový PASS neuzatvára AUDIT #19.
 
 ### 20. SoftwareSerial a OneWire majú potvrdené timing riziko
 
@@ -368,7 +375,8 @@ Tento dokument je živý register auditných nálezov, otvorených technických 
 - [x] **PHYSICALLY_CONFIRMED / ACCEPTED_RESIDUAL_RISK 2026-09-02:** reset jednej dosky zachová blokáciu cez druhú; súčasný reset Mega+Uno vytvorí približne 2–3 s permissive okno a potom sa TOTAL STOP znovu aktivuje.
 - [ ] Fyzicky overiť absenciu R9/R10 boot LOW pulzu po softvérovej HIGH-latch oprave.
 - [ ] Overiť I2C stuck-bus správanie, čas do safety inicializácie a loop latenciu.
-- [ ] Zmerať Uno SD/stack watermark, SD fault čas a realistický worst-loop.
+- [x] **SD ABSENT AT BOOT / RUN – PHYSICAL PASS 2026-09-02:** bez SD Uno nabootovalo, supervisor/link/XKC/agreement fungovali a opakované recovery pokusy nespôsobili pozorovaný reset, freeze ani link loss.
+- [ ] **AUDIT #19 zostáva OPEN:** zmerať SRAM/stack watermark pri približne 796 B voľnej SRAM a worst-case runtime/SD blocking pri chybovom alebo pomalom SD médiu.
 - [x] **PHYSICALLY_REPRODUCED_SYMPTOM 2026-09-02:** pri niekoľkominútovej trvalej UNO_TBOX chybe narástli CRC/INV/GAP, ale LINK a AGR zostali ON; po pripojení nastal recovery bez resetu.
 - [ ] **ROOT_CAUSE_NOT_PROVEN – AUDIT #20:** časovo izolovať OneWire/sensors.begin(), SoftwareSerial a jednotlivé V5 chyby; jednotlivé chyby existujú aj mimo DS fault.
 - [ ] Fyzicky overiť fallback Mega T1 + T4 → UNO_T1; aktuálne NOT TESTED / PHYSICAL ACCESS NOT PRACTICAL.
