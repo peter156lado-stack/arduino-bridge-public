@@ -23,12 +23,12 @@ Tento dokument je živý register auditných nálezov, otvorených technických 
 
 | STATUS | Počet |
 |---|---:|
-| OPEN | 12 |
+| OPEN | 11 |
 | FIXED_SOFTWARE | 6 |
 | DEFERRED | 6 |
 | WAITING_PHYSICAL_TEST | 2 |
 | PLANNED | 2 |
-| ACCEPTED_RESIDUAL_RISK | 0 |
+| ACCEPTED_RESIDUAL_RISK | 1 |
 | NOT_A_PROBLEM | 0 |
 | **Spolu** | **28** |
 
@@ -131,12 +131,13 @@ Tento dokument je živý register auditných nálezov, otvorených technických 
 
 ### 11. Reset počas trvalého LOW WATER dočasne uvoľní vlastný trip
 
-- **STATUS:** OPEN
+- **STATUS:** ACCEPTED_RESIDUAL_RISK
 - **Závažnosť:** HIGH
 - **Problém:** Po resete začína lokálne XKC potvrdenie od nuly a nový trip vznikne až po 5 s súvislého LOW WATER.
-- **Dopad:** Pri súčasnom alebo nevhodne načasovanom resete oboch dosiek môže vzniknúť dočasné okno bez aktívneho softvérového TOTAL STOP.
-- **Istota:** Reset správanie kódu je isté; fyzický dopad celej zapojenej vetvy je **NEOVERENÝ**.
-- **Odporúčaný smer:** Fyzicky charakterizovať reset počas LOW WATER a až následne rozhodnúť o reziduálnom riziku alebo nezávislom latchi/ochrane.
+- **Dopad:** Pri resete jednej dosky zostáva spoločná ochranná cesta blokovaná tripom druhej dosky. Pri súčasnom resete Mega aj Uno vzniká fyzicky potvrdené permissive okno približne 2–3 s, počas ktorého by motorová cesta mohla byť povolená; potom oba kontroléry znovu vyhodnotia trvajúci LOW WATER a TOTAL STOP opäť aktivujú.
+- **Istota:** **PHYSICALLY_CONFIRMED 2026-09-02.** Samostatný reset Uno aj samostatný reset Mega prešli; permissive okno pri súčasnom resete bolo fyzicky pozorované.
+- **Odporúčaný smer:** Známe reziduálne riziko je prevádzkovateľom pre aktuálnu aplikáciu akceptované. Nález nie je FIXED a produkčný kód sa nemení. Prípadné budúce odstránenie okna by vyžadovalo osobitne schválenú perzistentnú alebo nezávislú ochranu.
+- **STATUS TESTU:** PHYSICALLY_CONFIRMED / ACCEPTED_RESIDUAL_RISK
 
 ### 12. XKC súvislý čas je meraný iba vzorkovaním loopu
 
@@ -311,7 +312,17 @@ Tento dokument je živý register auditných nálezov, otvorených technických 
 - **Výsledok:** PHYSICAL PASS / COMMISSIONED
 - **Priebeh:** Mega↔Uno UART bol fyzicky odpojený. Obe lokálne XKC vetvy po viac než 5 s súvislého LOW_WATER fyzicky zopli svoje vlastné TOTAL STOP relé: Mega D30 aktivovalo Mega D32 a Uno A2 aktivovalo Uno A0.
 - **Recovery:** Pri návrate WATER zostali obe vetvy tripnuté počas recovery. Po približne 10 s stabilného WATER obe TOTAL STOP relé fyzicky odpadli. Nový LOW_WATER počas recovery správne vynuloval 10 s recovery interval.
-- **Záver:** Lokálna XKC safety na Mega aj Uno funguje nezávisle od UART komunikácie. Test nemení otvorené riziko resetu počas trvalého LOW WATER ani ostatné nevykonané fyzické testy.
+- **Záver:** Lokálna XKC safety na Mega aj Uno funguje nezávisle od UART komunikácie. Reset počas aktívneho LOW WATER bol následne samostatne fyzicky otestovaný; jeho výsledok a akceptované reziduálne riziko sú vedené v audite #11.
+
+### RESET DURING ACTIVE LOW_WATER – AUDIT #11
+
+- **Dátum:** 2026-09-02
+- **STATUS:** PHYSICALLY_CONFIRMED / ACCEPTED_RESIDUAL_RISK
+- **Východiskový stav:** LOW_WATER bol aktívny a potvrdený; obe TOTAL STOP vetvy boli tripnuté.
+- **Reset iba Uno:** Mega TOTAL STOP zostal aktívny a spoločná ochranná cesta zostala blokovaná – **PHYSICAL PASS**.
+- **Reset iba Mega:** Uno TOTAL STOP zostal aktívny a spoločná ochranná cesta zostala blokovaná – **PHYSICAL PASS**.
+- **Súčasný reset Mega + Uno:** oba lokálne trip stavy sa resetovali a vzniklo približne 2–3 s permissive okno, počas ktorého by motorová cesta mohla byť povolená. Následne oba kontroléry znovu vyhodnotili LOW_WATER a TOTAL STOP opäť aktivovali.
+- **Záver:** Redundancia chráni pri resete jednej dosky. Súčasný reset oboch dosiek má krátke fyzicky potvrdené permissive okno. Prevádzkovateľ toto známe reziduálne riziko pre aktuálnu aplikáciu akceptuje; nejde o opravený nález a kód sa nemení.
 
 ### AGREEMENT 180 s – PHYSICAL/SOFTWARE PASS
 
@@ -346,7 +357,7 @@ Tento dokument je živý register auditných nálezov, otvorených technických 
 - [x] **PHYSICAL PASS 2026-09-02:** Uno XKC A2 aktivovalo A0 po viac než 5 s súvislého LOW WATER.
 - [x] **PHYSICAL PASS 2026-09-02:** obe lokálne XKC vetvy aktivovali svoje TOTAL STOP relé pri fyzicky odpojenom Mega↔Uno UART.
 - [x] **PHYSICAL PASS 2026-09-02:** po WATER a 10 s súvislého recovery obe TOTAL STOP relé odpadli.
-- [ ] Overiť reset jednej aj oboch dosiek počas trvalého LOW WATER a zmerať okno bez tripu.
+- [x] **PHYSICALLY_CONFIRMED / ACCEPTED_RESIDUAL_RISK 2026-09-02:** reset jednej dosky zachová blokáciu cez druhú; súčasný reset Mega+Uno vytvorí približne 2–3 s permissive okno a potom sa TOTAL STOP znovu aktivuje.
 - [ ] Fyzicky overiť absenciu R9/R10 boot LOW pulzu po softvérovej HIGH-latch oprave.
 - [ ] Overiť I2C stuck-bus správanie, čas do safety inicializácie a loop latenciu.
 - [ ] Zmerať Uno SD/stack watermark, SD fault čas a realistický worst-loop.
@@ -394,4 +405,4 @@ Tento dokument je živý register auditných nálezov, otvorených technických 
 
 ### Zámerne neuzavreté týmto balíkom
 
-I2C timeout a skorá safety inicializácia, SystemMode gating R9/R10/manual/test, watchdog/freeze architektúra, reset počas LOW WATER, Uno BLACK BOX XKC/A0/D9, ESP autentifikácia a secrets, Uno RAM/SD/timing merania a všetky fyzické commissioning testy zostávajú podľa statusov a physical backlogu.
+I2C timeout a skorá safety inicializácia, SystemMode gating R9/R10/manual/test, watchdog/freeze architektúra, Uno BLACK BOX XKC/A0/D9, ESP autentifikácia a secrets, Uno RAM/SD/timing merania a zostávajúce fyzické commissioning testy zostávajú podľa statusov a physical backlogu. Reset počas LOW WATER bol fyzicky charakterizovaný a je vedený ako ACCEPTED_RESIDUAL_RISK, nie FIXED.

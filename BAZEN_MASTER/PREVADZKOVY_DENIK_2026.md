@@ -259,7 +259,16 @@ Táto sekcia nie je súčasťou doslovného RAW prepisu vyššie. Zachytáva fyz
 - Pri návrate WATER zostali tripnuté počas recovery a po približne 10 s stabilného WATER obe fyzicky odpadli.
 - Nový LOW_WATER počas recovery správne vynuloval 10 s recovery timer.
 - Výsledok: **PHYSICAL PASS / COMMISSIONED; lokálne trip/recovery autority sú nezávislé od UART.**
-- Samostatné riziko resetu MCU počas už trvajúceho LOW_WATER zostáva otvorené.
+- Reset MCU počas už trvajúceho LOW_WATER bol následne fyzicky otestovaný; výsledok je uvedený nižšie ako známe akceptované reziduálne riziko.
+
+### Reset počas aktívneho LOW_WATER – Audit #11
+
+- Východiskový stav: LOW_WATER bol aktívny a potvrdený, obe TOTAL STOP vetvy boli tripnuté.
+- **PHYSICAL PASS:** pri resete iba Uno zostal Mega TOTAL STOP aktívny a spoločná ochranná cesta blokovaná.
+- **PHYSICAL PASS:** pri resete iba Mega zostal Uno TOTAL STOP aktívny a spoločná ochranná cesta blokovaná.
+- Pri súčasnom resete Mega+Uno sa oba lokálne trip stavy resetovali. Vzniklo približne 2–3 s permissive okno, počas ktorého by motorová cesta mohla byť povolená; potom kontroléry znovu vyhodnotili trvajúci LOW_WATER a TOTAL STOP opäť aktivovali.
+- Záver: redundancia chráni pri resete jednej dosky. Súčasný reset oboch dosiek má krátke fyzicky potvrdené permissive okno.
+- Stav: **PHYSICALLY_CONFIRMED / ACCEPTED_RESIDUAL_RISK.** Prevádzkovateľ riziko pre aktuálnu aplikáciu akceptuje. Nález nie je FIXED a kód sa nemenil.
 
 ### Agreement 180 s
 
