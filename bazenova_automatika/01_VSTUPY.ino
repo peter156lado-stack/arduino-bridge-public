@@ -754,15 +754,6 @@ void vypisAdresyDS18B20() {
 
 void inicializaciaVstupov() {
 
-  pinMode(MEGA_XKC_PIN, INPUT_PULLUP);
-  megaXkcLowWater = digitalRead(MEGA_XKC_PIN) == HIGH;
-  megaXkcInicializovany = true;
-  megaXkcTrip = false;
-  megaXkcConfirmBezi = megaXkcLowWater;
-  megaXkcConfirmOdMs = megaXkcLowWater ? millis() : 0;
-  megaXkcRecoveryBezi = false;
-  megaXkcRecoveryOdMs = 0;
-
   pinMode(MEGA_SONAR_TRIG_PIN, OUTPUT);
   pinMode(MEGA_SONAR_ECHO_PIN, INPUT);
   digitalWrite(MEGA_SONAR_TRIG_PIN, LOW);

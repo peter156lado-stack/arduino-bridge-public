@@ -47,7 +47,25 @@ bool megaTotalStopRequest() {
   return megaXkcTrip;
 }
 
-// Jediny zapisovatel fyzickeho MEGA_TOTAL_STOP vystupu.
+// Jediny boot inicializacny bod lokalnej Mega safety vetvy. Nema zavislost
+// na RTC, I2C, AHT10, Uno/UART, SystemMode ani regulacii vystupov.
+void inicializaciaMegaSafetyEarly() {
+  pinMode(MEGA_XKC_PIN, INPUT_PULLUP);
+  megaXkcLowWater = digitalRead(MEGA_XKC_PIN) == HIGH;
+  megaXkcInicializovany = true;
+  megaXkcTrip = false;
+  megaXkcConfirmBezi = megaXkcLowWater;
+  megaXkcConfirmOdMs = megaXkcLowWater ? millis() : 0;
+  megaXkcRecoveryBezi = false;
+  megaXkcRecoveryOdMs = 0;
+
+  // Energize-to-trip: LOW latch musi byt zapisany este pred OUTPUT.
+  digitalWrite(MEGA_TOTAL_STOP_PIN, LOW);
+  pinMode(MEGA_TOTAL_STOP_PIN, OUTPUT);
+  digitalWrite(MEGA_TOTAL_STOP_PIN, LOW);
+}
+
+// Jediny runtime zapisovatel fyzickeho MEGA_TOTAL_STOP vystupu.
 void aktualizujMegaTotalStopVystup() {
   digitalWrite(MEGA_TOTAL_STOP_PIN, megaTotalStopRequest() ? HIGH : LOW);
 }
@@ -68,11 +86,6 @@ unsigned long filtraciaResetOffOdMs = 0;
 // --------------------------------------------------
 
 void inicializaciaVystupov() {
-
-  // Energize-to-trip: bez potvrdeneho XKC tripu je boot/reset LOW / COM-NC.
-  aktualizujMegaTotalStopVystup();
-  pinMode(MEGA_TOTAL_STOP_PIN, OUTPUT);
-  aktualizujMegaTotalStopVystup();
 
   // W1209 supervision ma autoritu iba v budúcom explicitnom BASIC mode.
   // Aktualny kod nema autoritativny SYSTEM_MODE ani potvrdenie realneho

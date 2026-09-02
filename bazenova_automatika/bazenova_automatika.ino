@@ -81,6 +81,10 @@ void vypisMegaTiming() {
 
 void setup() {
 
+  // Lokalna XKC/TOTAL STOP vetva musi mat definovany boot stav este pred
+  // akoukolvek RTC/I2C/AHT komunikaciou.
+  inicializaciaMegaSafetyEarly();
+
 #if CROSS_RESET_ENABLED
   inicializujCrossReset();
 #endif
