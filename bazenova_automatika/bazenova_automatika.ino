@@ -3,6 +3,12 @@
 // HLAVNY PROGRAM
 // ==================================================
 
+// Cross-reset je iba pripravena, defaultne vypnuta recovery vrstva.
+// Build override na 1 je povoleny az po osobitnom prideleni pinov.
+#ifndef CROSS_RESET_ENABLED
+#define CROSS_RESET_ENABLED 0
+#endif
+
 // Jediny autoritativny runtime rezim na Mega. Typ je zamerne v hlavnej
 // karte, aby ho videli automaticky generovane Arduino prototypy.
 enum SystemMode : byte {
@@ -75,6 +81,10 @@ void vypisMegaTiming() {
 
 void setup() {
 
+#if CROSS_RESET_ENABLED
+  inicializujCrossReset();
+#endif
+
   // ------------------------------------------------
   // START SERIAL MONITOR
   // ------------------------------------------------
@@ -125,6 +135,10 @@ void setup() {
 
 
 void loop() {
+
+#if CROSS_RESET_ENABLED
+  aktualizujCrossReset();
+#endif
 
   aktualizujTlacidla();
   aktualizujRotaciuHMI();
