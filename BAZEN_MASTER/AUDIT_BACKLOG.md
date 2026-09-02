@@ -304,14 +304,16 @@ Tento dokument je živý register auditných nálezov, otvorených technických 
 
 ### UNO D9 AGREEMENT OUTPUT
 
-- **STATUS INCIDENTU:** OBSERVED_ONCE / NOT_REPRODUCED_AFTER_3_COLD_BOOTS
+- **STATUS INCIDENTU:** CLOSED / NOT_REPRODUCED_AFTER_3_COLD_BOOTS / ACCEPTED
 - **Priebeh:** Po fyzickom teste výpadku Mega↔Uno UART a následnom obnovení komunikácie Uno softvérovo korektne dokončilo celý 180 s stabilizačný interval. Sériový log obsahoval RECOVERY: UNO_AGREEMENT=ON a pravidelná diagnostika zobrazovala AGR=ON.
 - **Fyzické pozorovanie:** Pri pripojenom agreement obvode bolo na fyzickej vetve D9 namerané približne 0 V a relé nezoplo. Mechanické dotiahnutie spoja bolo už pred incidentom nadoraz. Po rozpojení príslušného vodiča/vetvy sa priamo na Uno D9 okamžite objavilo približne +5 V. Po opätovnom pripojení vodiča zostalo D9 HIGH a agreement relé začalo fungovať správne. Následný reset a opakovaný test sa už správali normálne.
 - **Reproduction test:** Po pôvodnom incidente boli vykonané tri samostatné cold-boot/power-cycle testy Uno s pripojenou agreement vetvou. Vo všetkých troch prípadoch prebehlo UNO_SMART_STABLE korektne, po 180 s nasledovalo UNO_AGREEMENT=ON a AGR=ON, priamo na D9 bolo približne +5 V a agreement relé fyzicky zoplo.
 - **Výsledok reprodukcie:** Pôvodná kombinácia AGR=ON a fyzické D9 približne 0 V sa ani v jednom z troch cold bootov nezopakovala.
 - **Potvrdené:** 180 s agreement algoritmus softvérovo PASS. Uno D9 dokáže vytvoriť HIGH.
 - **Nepotvrdená príčina:** Incident zatiaľ poukazuje na možný externý hardvérový jav v H/L module, jeho napájaní, backfeed/power-up stave, vodiči alebo spoji. Presná príčina je **NEPOTVRDENÁ**.
-- **Rozhodnutie:** Produkčný kód sa kvôli jednorazovému nereprodukovanému incidentu nemení. Ak sa stav zopakuje, treba zmerať D9 aj vstup H/L modulu a postupne izolovať externú záťaž, modul, napájanie, vodič a spoj.
+- **Uzavretie aktívneho backlogu:** Prevádzkovateľ jednorazový nereprodukovaný hardvérový incident pre aktuálnu aplikáciu akceptuje. Stav nie je označený FIXED ani ROOT_CAUSE_FOUND a historický záznam zostáva zachovaný.
+- **Readback obmedzenie:** Aktuálne nie je implementovaný fyzický readback napätia D9 ani kontaktu/polohy agreement relé. AGR=ON je softvérový command/state, nie meranie skutočného napätia na D9 alebo fyzického zopnutia relé.
+- **Podmienka pri opakovaní:** Ak sa incident niekedy zopakuje, ešte pred rozpojením vetvy zmerať D9 priamo na Uno, vstup H/L modulu a jeho napájanie; potom podľa výsledkov izolovať externú záťaž, modul, vodič a spoj.
 
 ### XKC SAFETY BEZ UART – PHYSICAL PASS
 
@@ -336,7 +338,7 @@ Tento dokument je živý register auditných nálezov, otvorených technických 
 - **Mega:** Po resetoch a obnovení komunikácie SMART_STABLE pokračovalo cez 10 až 170/180 s, nasledovalo RECOVERY: MEGA_AGREEMENT=ON a po prijatí vzdialeného Uno agreement SYSTEM_MODE=SMART REASON=FULL_SMART.
 - **Uno:** Po RECOVERY: UNO_SMART_STABLE=START nasledovalo po celom 180 s intervale RECOVERY: UNO_AGREEMENT=ON; následná diagnostika uvádzala UNO=OK LINK=OK AGR=ON.
 - **Záver:** 180 s stabilizácia, zapnutie agreement a návrat do FULL_SMART pri platných podmienkach fungujú. D31/D9 zostávajú statické agreement/permission výstupy, nie pulzný hardvérový watchdog.
-- **Výhrada:** Jednorazový externý D9 incident je vedený samostatne ako OBSERVED_ONCE / NOT_REPRODUCED_AFTER_3_COLD_BOOTS a nemení výsledok softvérového algoritmu; jeho presná príčina zostáva nepotvrdená.
+- **Výhrada:** Jednorazový externý D9 incident je vedený samostatne ako CLOSED / NOT_REPRODUCED_AFTER_3_COLD_BOOTS / ACCEPTED a nemení výsledok softvérového algoritmu; nejde o FIXED ani ROOT_CAUSE_FOUND a jeho presná príčina zostáva nepotvrdená.
 
 ### FYZICKÉ TESTY TEPLOTNÝCH FALLBACKOV – FULL_SMART
 
@@ -373,7 +375,9 @@ Tento dokument je živý register auditných nálezov, otvorených technických 
 - [x] **NOT REPRODUCED 2026-09-02:** vykonané tri samostatné cold-boot/power-cycle testy Uno s pripojenou agreement vetvou.
 - [x] **PHYSICAL PASS 3/3:** po 180 s bolo UNO_AGREEMENT=ON, AGR=ON, D9 približne +5 V a agreement relé fyzicky zoplo.
 - [x] **NOT REPRODUCED AFTER 3 COLD BOOTS:** kombinácia AGR=ON a fyzické D9 približne 0 V sa nezopakovala.
-- [ ] Ak sa incident zopakuje, zmerať D9 priamo na Uno aj na vstupe H/L modulu a postupne izolovať napájanie, H/L modul, vodič a spoj.
+- [x] **CLOSED / ACCEPTED:** D9 incident bol odstránený z aktívneho commissioning backlogu bez označenia FIXED alebo ROOT_CAUSE_FOUND.
+
+Podmienený postup pri budúcom opakovaní: ešte pred rozpojením vetvy zmerať D9 priamo na Uno, vstup H/L modulu a jeho napájanie. AGR=ON samo nepotvrdzuje fyzické napätie ani polohu reléového kontaktu.
 
 ## POST-COMMISSIONING DIAGNOSTIC FOLLOW-UP
 

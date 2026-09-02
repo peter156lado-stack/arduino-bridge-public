@@ -766,6 +766,8 @@ Hlavné programy Mega a Uno od 21. 8. 2026 priamo riadia fyzicky overené H/L re
 
 Diagnostika oboch dosiek zobrazuje `SMART_STABLE=BLOCKED`, priebeh `SMART_STABLE=n/180s` alebo `SMART_STABLE=READY`. Zmena stabilizácie používa krátke `EVENT:`/`RECOVERY:` riadky bez blokovania hlavného programu.
 
+Commissioning 2026-09-02 zaznamenal jeden prípad `AGR=ON` s fyzickým D9 približne 0 V. Tri následné cold-boot/power-cycle testy prešli s D9 približne +5 V a fyzicky zopnutým relé, preto je incident uzavretý ako `CLOSED / NOT_REPRODUCED_AFTER_3_COLD_BOOTS / ACCEPTED`, nie `FIXED` ani `ROOT_CAUSE_FOUND`; príčina zostáva neznáma. `AGR=ON` je softvérový command/state, pretože fyzický readback D9 napätia ani kontaktu relé nie je implementovaný. Pri prípadnom opakovaní sa musia D9, vstup H/L modulu a jeho napájanie zmerať ešte pred rozpojením vetvy.
+
 Táto implementácia stále neovláda autonómne BASIC_R1–R4, automatický reset druhej dosky, RESET_LOCKOUT, motorový dead-time ani ďalšie neschválené safety podmienky. LOW WATER XKC Safety V1 je implementovaný oddelene: každý lokálny kanál po 5 s aktivuje vlastný TOTAL STOP. Fyzicky sú BASIC_R1/R2 vložené do motorových ciest a BASIC_R3 do 12 V napájacej cesty W1209 cez pokojový `COM–NC`; BASIC_R4 zostáva nezapojenou rezervou. UART/V5 je podmienkou aktuálneho základného agreement, ale nie je potrebný pre lokálny XKC trip a stále nie je finálnym samostatným safety heartbeat prvkom. XKC telemetrické bity agreement nijako nemenia.
 
 ## Vrstva 2 – LOW WATER FIL/SOLAR
@@ -1118,7 +1120,6 @@ Zatiaľ nie sú potvrdené a nesmú sa domýšľať:
 
 - piny budúcich, zatiaľ neschválených funkcií Mega/Uno; dnešné D30/D31/D32/D33 a Uno A0/A2/D9 sú pridelené podľa PINOUT;
 - budúca samostatná safety heartbeat vrstva; aktuálna Mega↔Uno UART vrstva je priame TTL 38400 Bd cez dva sériové 10 kΩ odpory, spoločnú GND a bez spoločného +5 V;
-- sledovanie jednorazového externého incidentu Uno D9, pri ktorom softvér hlásil agreement ON, ale pripojená vetva stiahla D9 približne na 0 V; tri následné cold-boot/power-cycle testy prešli s D9 približne +5 V a zopnutým relé, takže stav je `OBSERVED_ONCE / NOT_REPRODUCED_AFTER_3_COLD_BOOTS`, pričom presná H/L/napájacia/backfeed/spojová príčina zostáva nepotvrdená;
 - autonómna BASIC logika a podmienky BASIC_R3/R4;
 - prípadné budúce použitie skladovaného ESP-01S zostáva `NEURČENÉ`;
 - fyzický test druhej MicroSD vrstvy plánovanej pre Mega;

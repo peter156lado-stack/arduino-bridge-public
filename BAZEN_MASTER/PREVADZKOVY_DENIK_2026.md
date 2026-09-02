@@ -283,7 +283,9 @@ Táto sekcia nie je súčasťou doslovného RAW prepisu vyššie. Zachytáva fyz
 - Po incidente boli vykonané tri samostatné cold-boot/power-cycle testy. Vo všetkých troch prebehlo UNO_SMART_STABLE korektne, po 180 s bolo UNO_AGREEMENT=ON a AGR=ON, D9 malo približne +5 V a agreement relé fyzicky zoplo.
 - Pôvodná kombinácia AGR=ON a fyzické D9 približne 0 V sa po troch cold bootoch nezopakovala.
 - Presná externá príčina zostáva nepotvrdená; možné oblasti sú H/L modul, napájanie, backfeed/power-up stav, vodič alebo spoj.
-- Stav: **OBSERVED_ONCE / NOT_REPRODUCED_AFTER_3_COLD_BOOTS.** Bez zmeny kódu.
+- Aktuálne neexistuje fyzický readback napätia D9 ani kontaktu agreement relé; AGR=ON je iba softvérový command/state.
+- Stav: **CLOSED / NOT_REPRODUCED_AFTER_3_COLD_BOOTS / ACCEPTED.** Nie FIXED ani ROOT_CAUSE_FOUND; bez zmeny kódu.
+- Ak sa incident zopakuje, ešte pred rozpojením vetvy treba zmerať D9 priamo na Uno, vstup H/L modulu a jeho napájanie.
 
 ### Teplotné fallbacky
 
