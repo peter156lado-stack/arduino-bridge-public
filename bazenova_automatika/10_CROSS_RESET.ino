@@ -16,6 +16,7 @@
 const unsigned long HEARTBEAT_TOGGLE_MS = 500UL;
 const unsigned long HEARTBEAT_TIMEOUT_MS = 5000UL;
 const unsigned long STARTUP_GRACE_MS = 15000UL;
+const unsigned long PRE_RESET_GRACE_MS = 15000UL;
 const unsigned long RESET_PULSE_MS = 200UL;
 const unsigned long POST_RESET_GRACE_MS = 15000UL;
 const byte CROSS_RESET_REQUIRED_EDGES = 2;
@@ -31,12 +32,14 @@ bool CROSS_RESET_RECOVERY = false;
 bool crossResetHeartbeatOutLevel = false;
 bool crossResetPeerLevel = false;
 bool crossResetPeerLevelInicializovany = false;
+bool crossResetPreGraceAktivna = false;
 bool crossResetPostGraceAktivna = false;
 byte crossResetObservedEdges = 0;
 byte crossResetRecoveryEdges = 0;
 unsigned long crossResetBootOdMs = 0;
 unsigned long crossResetHeartbeatToggleOdMs = 0;
 unsigned long crossResetLastHeartbeatEdgeMs = 0;
+unsigned long crossResetPreGraceOdMs = 0;
 unsigned long crossResetPulseOdMs = 0;
 unsigned long crossResetPostGraceOdMs = 0;
 
@@ -82,6 +85,7 @@ void zaznamenajCrossResetPeerEdge(unsigned long teraz) {
   crossResetPeerLevel = novaUroven;
   PEER_HEARTBEAT_SEEN = true;
   crossResetLastHeartbeatEdgeMs = teraz;
+  crossResetPreGraceAktivna = false;
 
   if (CROSS_RESET_ATTEMPTED && !CROSS_RESET_PULSE) {
     if (crossResetRecoveryEdges < CROSS_RESET_REQUIRED_EDGES)
@@ -106,6 +110,7 @@ void spustiCrossResetPulse(unsigned long teraz) {
   CROSS_RESET_PULSE = true;
   CROSS_RESET_ATTEMPTED = true;
   CROSS_RESET_RECOVERY = false;
+  crossResetPreGraceAktivna = false;
   crossResetRecoveryEdges = 0;
   crossResetPulseOdMs = teraz;
   digitalWrite(CROSS_RESET_PEER_RESET_OUT_PIN, HIGH);
@@ -148,12 +153,17 @@ void aktualizujCrossReset() {
       PEER_HEARTBEAT_FRESH &&
       crossResetObservedEdges >= CROSS_RESET_REQUIRED_EDGES) {
     CROSS_RESET_ARMED = true;
+    crossResetPreGraceAktivna = false;
   }
 
-  if (CROSS_RESET_ARMED &&
-      PEER_HEARTBEAT_SEEN &&
-      teraz - crossResetLastHeartbeatEdgeMs >= HEARTBEAT_TIMEOUT_MS) {
-    spustiCrossResetPulse(teraz);
+  if (CROSS_RESET_ARMED && !PEER_HEARTBEAT_FRESH) {
+    if (!crossResetPreGraceAktivna) {
+      crossResetPreGraceAktivna = true;
+      crossResetPreGraceOdMs = teraz;
+    }
+    else if (teraz - crossResetPreGraceOdMs >= PRE_RESET_GRACE_MS) {
+      spustiCrossResetPulse(teraz);
+    }
   }
 }
 

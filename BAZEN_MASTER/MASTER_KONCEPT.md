@@ -148,23 +148,23 @@ Platí záväzné rozlíšenie:
 - `RESET FAILURE / RESET_LOCKOUT → BASIC`;
 - `CRITICAL PHYSICAL SAFETY CONDITION → STOP` pre dotknutú technológiu.
 
-Funkčný procesor môže v budúcnosti vykonať obmedzený počet pokusov o reset nedôveryhodného procesora. Automatický reset nesmie prebiehať donekonečna. Po každom pokuse musí byť dostatok času na boot, inicializáciu, self-test, obnovenie komunikácie a synchronizáciu. Po vyčerpaní povolených pokusov vznikne `RESET_LOCKOUT`, ktorý zakáže ďalšie automatické resetovanie v danom poruchovom incidente. `RESET_LOCKOUT` neznamená STOP: ak nezávislé podmienky BASIC zostávajú bezpečné, systém pokračuje v BASIC aj s trvalo nedostupným druhým procesorom.
+Funkčný procesor môže po budúcom fyzickom commissioningu vykonať obmedzený reset nedôveryhodného peer procesora. Automatický reset nesmie prebiehať donekonečna. Softvérová V1 predpríprava je od 2026-09-02 prítomná na Mega aj Uno, ale defaultne úplne vypnutá cez `CROSS_RESET_ENABLED=0`, bez pridelených GPIO a bez runtime účinku.
 
-Pracovný návrh je najviac **3 automatické resetovacie pokusy v jednom poruchovom incidente**. Hodnota 3, rozostupy, boot timeout, dĺžka self-testu, podmienky nového incidentu a spôsob zrušenia `RESET_LOCKOUT` sú stále **NÁVRH – TREBA FYZICKY OVERIŤ**. Zatiaľ nie sú implementované ani pinovo priradené.
+Pripravená V1 povoľuje najviac **jeden automatický resetovací pokus na jednu súvislú stratu samostatného heartbeat**. Ďalší pokus sa smie odomknúť až po reálnom recovery peer procesora potvrdenom najmenej dvoma novými heartbeat hranami. Ak peer po jednom resete neožije, stav `CROSS_RESET_ATTEMPTED` blokuje reset storm a existujúca BASIC/TOTAL STOP architektúra zostáva autoritatívna. Starší pracovný návrh troch pokusov je pre túto pripravenú V1 nahradený pravidlom jedného pokusu; historické záznamy sa nemenia.
 
 #### RESET GRACE – servisné čakacie okno
 
-**SCHVÁLENÉ PRAVIDLO, NEIMPLEMENTOVANÉ.** Po zistení nedostupnosti, resetu, výpadku komunikácie alebo straty dôvery v druhú dosku sa SMART agreement zruší okamžite a systém prejde podľa existujúcej architektúry do BASIC. Hardvérový automatický RESET druhej dosky sa však nesmie vykonať okamžite. Najprv musí prebehnúť `RESET_GRACE`, ktorého presná dĺžka zostáva `TBD`.
+**SOFTWARE PREPARED / DISABLED / PINS_TBD / NOT_COMMISSIONED.** Cross-reset nepoužíva UART link stav, D31/D9 agreement, SystemMode, XKC ani TOTAL STOP ako watchdog. Sleduje iba zmenu samostatného pulzného heartbeat generovaného z hlavného loopu. Pri defaultnom builde sa žiadny nový GPIO neinicializuje a žiadny reset sa nevydá.
 
 Grace okno chráni normálny servisný zásah: pripojenie k PC, otvorenie programovania, upload firmvéru a USB/autoreset môžu prirodzene vyvolať reset procesora a dočasnú stratu UART. Druhá doska nesmie tento servisný reset prekryť vlastným hardvérovým resetom a rušiť alebo znemožniť upload.
 
 - ak sa doska počas `RESET_GRACE` sama korektne vráti, fyzický RESET sa nevydá;
 - samovoľný návrat bez vydaného fyzického RESET impulzu nespotrebuje automatický resetovací pokus;
-- až po uplynutí grace okna, ak doska zostáva nedôveryhodná, môže zdravá strana vydať fyzický RESET;
-- pracovný návrh zostáva najviac 3 automatické resetovacie pokusy na incident;
-- po vyčerpaní pokusov platí `RESET_LOCKOUT → ďalšie automatické resety zakázané → BASIC`; `RESET_LOCKOUT ≠ STOP`.
+- až po 5 s heartbeat timeout a následnom 15 s pre-reset servisnom grace môže zdravá strana vydať jeden fyzický RESET;
+- po 200 ms pulze nasleduje 15 s post-reset grace;
+- bez reálneho recovery peer heartbeat zostáva ďalší reset zakázaný; tento lockout neznamená STOP a systém zostáva podľa nezávislých podmienok v BASIC.
 
-Budúci hardvérový reset má používať BC547 ako tranzistorový low-side/open-collector-like pull-down vstupu RESET. BC547 nie je galvanické oddelenie. Konkrétne piny MCU, rezistory, zapojenie a čas impulzu zostávajú `TBD`; pinout konkrétneho fyzického BC547 sa musí pred montážou overiť.
+Budúci hardvérový reset má používať BC547B ako tranzistorový low-side/open-collector-like pull-down vstupu RESET: collector na RESET cieľového Arduina, emitter na spoločnú GND, base cez 4k7 z reset-output GPIO a 47k pull-down base→GND. HIGH na reset-output zopne tranzistor a stiahne RESET LOW; LOW je neaktívny. Konkrétne GPIO na Mega aj Uno zostávajú `TBD` a build pri zapnutí flagu bez ich pridelenia zámerne zlyhá. Pinout konkrétneho BC547B sa musí pred montážou overiť.
 
 `RESET_GRACE` ani `RESET_LOCKOUT` nesmú odložiť LOW WATER, dry-run, kritický leak alebo inú schválenú kritickú fyzickú reakciu. Po resete zostáva povinná sekvencia `BOOT → SELF_TEST → LINK/SYNC OK → STABLE → AGREEMENT → SMART` vrátane existujúcej 180-sekundovej nepretržitej stabilizácie.
 
@@ -770,9 +770,9 @@ Hlavné programy Mega a Uno od 21. 8. 2026 priamo riadia fyzicky overené H/L re
 
 Diagnostika oboch dosiek zobrazuje `SMART_STABLE=BLOCKED`, priebeh `SMART_STABLE=n/180s` alebo `SMART_STABLE=READY`. Zmena stabilizácie používa krátke `EVENT:`/`RECOVERY:` riadky bez blokovania hlavného programu.
 
-Commissioning 2026-09-02 zaznamenal jeden prípad `AGR=ON` s fyzickým D9 približne 0 V. Tri následné cold-boot/power-cycle testy prešli s D9 približne +5 V a fyzicky zopnutým relé, preto je incident uzavretý ako `CLOSED / NOT_REPRODUCED_AFTER_3_COLD_BOOTS / ACCEPTED`, nie `FIXED` ani `ROOT_CAUSE_FOUND`; príčina zostáva neznáma. `AGR=ON` je softvérový command/state, pretože fyzický readback D9 napätia ani kontaktu relé nie je implementovaný. Pri prípadnom opakovaní sa musia D9, vstup H/L modulu a jeho napájanie zmerať ešte pred rozpojením vetvy.
+Commissioning 2026-09-02 najprv zaznamenal prípad `AGR=ON` s fyzickým D9 približne 0 V. Tri následné cold-boot/power-cycle testy prešli s D9 približne +5 V a fyzicky zopnutým relé. Neskoršia druhá reprodukcia AGR=ON s vypnutým relé a chatterom pri dotyku/meraní umožnila identifikovať prerušovaný fyzický kontakt na Uno D9 konektore/header spoji. Incident je uzavretý ako `CLOSED / ROOT_CAUSE_IDENTIFIED / PHYSICAL_CONTACT_FAULT`; nejde o software bug ani chybu 180 s agreement. `AGR=ON` zostáva iba softvérový command/state, pretože fyzický readback D9 napätia ani kontaktu relé nie je implementovaný.
 
-Táto implementácia stále neovláda autonómne BASIC_R1–R4, automatický reset druhej dosky, RESET_LOCKOUT, motorový dead-time ani ďalšie neschválené safety podmienky. LOW WATER XKC Safety V1 je implementovaný oddelene: každý lokálny kanál po 5 s aktivuje vlastný TOTAL STOP. Fyzicky sú BASIC_R1/R2 vložené do motorových ciest a BASIC_R3 do 12 V napájacej cesty W1209 cez pokojový `COM–NC`; BASIC_R4 zostáva nezapojenou rezervou. UART/V5 je podmienkou aktuálneho základného agreement, ale nie je potrebný pre lokálny XKC trip a stále nie je finálnym samostatným safety heartbeat prvkom. XKC telemetrické bity agreement nijako nemenia.
+Táto implementácia stále neovláda autonómne BASIC_R1–R4, aktívny automatický reset druhej dosky, motorový dead-time ani ďalšie neschválené safety podmienky. Cross-reset je iba compile-time pripravený, defaultne vypnutý a bez pinov. LOW WATER XKC Safety V1 je implementovaný oddelene: každý lokálny kanál po 5 s aktivuje vlastný TOTAL STOP. Fyzicky sú BASIC_R1/R2 vložené do motorových ciest a BASIC_R3 do 12 V napájacej cesty W1209 cez pokojový `COM–NC`; BASIC_R4 zostáva nezapojenou rezervou. UART/V5 je podmienkou aktuálneho základného agreement, ale nie je potrebný pre lokálny XKC trip a nie je cross-reset heartbeat prvkom. XKC telemetrické bity agreement nijako nemenia.
 
 ## Vrstva 2 – LOW WATER FIL/SOLAR
 
@@ -1037,10 +1037,11 @@ Infračervený snímač plameňa je určený na kontrolu prítomnosti plameňa h
 
 ## Heartbeat, ACK a komunikácia
 
-- Heartbeat Mega→Uno a Uno→Mega budú samostatné fyzické signály.
+- Heartbeat Mega→Uno a Uno→Mega sú softvérovo pripravené ako samostatné pulzné signály z hlavného loopu, ale `CROSS_RESET_ENABLED=0`, piny sú `TBD` a fyzické signály nie sú zapojené ani commissioned.
 - Starý softvérový heartbeat na fyzicky nepoužitom Mega D44 bol odstránený; D44 je aktuálne voľný a nemá protokolovú ani safety funkciu.
-- Budúci fyzický RESET/ACK nesmie zmazať aktívnu príčinu. Resetovanie bude obmedzené, po vyčerpaní pokusov vznikne `RESET_LOCKOUT` a systém zostane v BASIC, ak nie je aktívna samostatná kritická fyzická podmienka vyžadujúca STOP.
-- Diagnostická komunikácia Mega↔Uno používa priame TTL Serial2 D16/D17 ↔ Uno D7/D8 pri 38400 Bd, neinvertovane a cez sériový 10 kΩ v každom smere. Safety heartbeat a SMART/BASIC dohoda zostávajú samostatná budúca vrstva.
+- Pripravená V1 používa 500 ms toggle, 5 s timeout, 15 s startup grace, 15 s pre-reset grace, 200 ms reset pulse a 15 s post-reset grace. Najviac jeden reset je povolený na súvislú stratu; nový až po potvrdenom heartbeat recovery.
+- Budúci fyzický RESET nesmie zmazať aktívnu príčinu. Po neúspešnom jedinom pokuse ďalší reset zostane blokovaný a systém zostane v BASIC, ak nie je aktívna samostatná kritická fyzická podmienka vyžadujúca STOP.
+- Diagnostická komunikácia Mega↔Uno používa priame TTL Serial2 D16/D17 ↔ Uno D7/D8 pri 38400 Bd, neinvertovane a cez sériový 10 kΩ v každom smere. UART ani statické D31/D9 agreement nie sú cross-reset watchdog.
 - Výpadok jedného senzora nesmie zastaviť ostatné merania.
 - Budúca architektúra nepoužíva blokujúce čakanie.
 

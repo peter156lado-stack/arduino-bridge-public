@@ -315,16 +315,27 @@ Tento dokument je živý register auditných nálezov, otvorených technických 
 
 ### UNO D9 AGREEMENT OUTPUT
 
-- **STATUS INCIDENTU:** CLOSED / NOT_REPRODUCED_AFTER_3_COLD_BOOTS / ACCEPTED
+- **STATUS INCIDENTU:** CLOSED / ROOT_CAUSE_IDENTIFIED / PHYSICAL_CONTACT_FAULT
 - **Priebeh:** Po fyzickom teste výpadku Mega↔Uno UART a následnom obnovení komunikácie Uno softvérovo korektne dokončilo celý 180 s stabilizačný interval. Sériový log obsahoval RECOVERY: UNO_AGREEMENT=ON a pravidelná diagnostika zobrazovala AGR=ON.
-- **Fyzické pozorovanie:** Pri pripojenom agreement obvode bolo na fyzickej vetve D9 namerané približne 0 V a relé nezoplo. Mechanické dotiahnutie spoja bolo už pred incidentom nadoraz. Po rozpojení príslušného vodiča/vetvy sa priamo na Uno D9 okamžite objavilo približne +5 V. Po opätovnom pripojení vodiča zostalo D9 HIGH a agreement relé začalo fungovať správne. Následný reset a opakovaný test sa už správali normálne.
-- **Reproduction test:** Po pôvodnom incidente boli vykonané tri samostatné cold-boot/power-cycle testy Uno s pripojenou agreement vetvou. Vo všetkých troch prípadoch prebehlo UNO_SMART_STABLE korektne, po 180 s nasledovalo UNO_AGREEMENT=ON a AGR=ON, priamo na D9 bolo približne +5 V a agreement relé fyzicky zoplo.
-- **Výsledok reprodukcie:** Pôvodná kombinácia AGR=ON a fyzické D9 približne 0 V sa ani v jednom z troch cold bootov nezopakovala.
-- **Potvrdené:** 180 s agreement algoritmus softvérovo PASS. Uno D9 dokáže vytvoriť HIGH.
-- **Nepotvrdená príčina:** Incident zatiaľ poukazuje na možný externý hardvérový jav v H/L module, jeho napájaní, backfeed/power-up stave, vodiči alebo spoji. Presná príčina je **NEPOTVRDENÁ**.
-- **Uzavretie aktívneho backlogu:** Prevádzkovateľ jednorazový nereprodukovaný hardvérový incident pre aktuálnu aplikáciu akceptuje. Stav nie je označený FIXED ani ROOT_CAUSE_FOUND a historický záznam zostáva zachovaný.
+- **Prvý incident:** Pri pripojenom agreement obvode bolo na fyzickej vetve D9 namerané približne 0 V a relé nezoplo. Po rozpojení vodiča sa priamo na Uno D9 objavilo približne +5 V; po opätovnom pripojení zostalo D9 HIGH a relé fungovalo.
+- **Historické reproduction testy:** Po prvom incidente prešli tri samostatné cold-boot/power-cycle testy. Vždy prebehlo UNO_SMART_STABLE, po 180 s nasledovalo UNO_AGREEMENT=ON a AGR=ON, D9 malo približne +5 V a agreement relé fyzicky zoplo.
+- **Druhá reprodukcia:** Kombinácia AGR=ON a fyzicky vypnuté agreement relé sa 2026-09-02 znovu objavila. Dotyk/meranie v oblasti D9 vyvolalo chatter/cvakanie relé a manipulácia s konkrétnym kontaktom poruchu reprodukovala alebo odstránila.
+- **ROOT CAUSE IDENTIFIED:** Nespoľahlivý prerušovaný elektrický kontakt na konektore/header spoji Uno D9. Kontakt bol mechanicky zasunutý na doraz, ale elektricky nebol spoľahlivý.
+- **Potvrdené:** 180 s agreement algoritmus je softvérovo PASS a Uno D9 dokáže vytvoriť HIGH. Incident nie je software bug ani chyba agreement časovania.
 - **Readback obmedzenie:** Aktuálne nie je implementovaný fyzický readback napätia D9 ani kontaktu/polohy agreement relé. AGR=ON je softvérový command/state, nie meranie skutočného napätia na D9 alebo fyzického zopnutia relé.
-- **Podmienka pri opakovaní:** Ak sa incident niekedy zopakuje, ešte pred rozpojením vetvy zmerať D9 priamo na Uno, vstup H/L modulu a jeho napájanie; potom podľa výsledkov izolovať externú záťaž, modul, vodič a spoj.
+- **Po oprave kontaktu:** Incident je uzavretý ako fyzická kontaktná porucha. Zostáva iba bežné prevádzkové pozorovanie možnej recidívy kontaktu; agreement algoritmus sa nemení.
+
+### MEGA ↔ UNO HARDWARE CROSS-RESET – SOFTWARE PREP
+
+- **STATUS:** PREPARED / DISABLED / PINS_TBD / NOT_COMMISSIONED
+- **Rozsah:** Mega aj Uno obsahujú samostatnú compile-time odrezanú prípravu pulzného heartbeat a jedného vzájomného resetovacieho pokusu. Default je `CROSS_RESET_ENABLED=0`.
+- **Defaultný build:** Neinicializuje žiadny nový GPIO, neposiela heartbeat a nevydáva RESET. Bez pridelených troch pinových makier zapnutý build zámerne zlyhá hláškou `Assign cross-reset heartbeat/reset pins before enabling.`
+- **Piny:** Heartbeat OUT, heartbeat IN a peer RESET OUT zostávajú na oboch doskách `TBD`; žiadne číslo pinu nebolo pridelené.
+- **Nezávislosť:** Heartbeat vzniká iba z hlavného loopu a nesmie sa odvodiť z UART linky, D31/D9 agreement, SystemMode, XKC ani TOTAL STOP.
+- **Pripravené časy:** toggle 500 ms, timeout 5 000 ms, startup grace 15 000 ms, pre-reset servisné grace 15 000 ms, reset pulse 200 ms a post-reset grace 15 000 ms; všetky sú pomenované konštanty pre budúci commissioning.
+- **Anti-storm:** Pred armovaním sa vyžadujú najmenej dve reálne hrany peer heartbeat. Pri jednej súvislej strate je povolený najviac jeden reset; ďalší pokus sa odomkne až po dvoch nových hranách potvrdeného recovery.
+- **Hardvér TBD pre budúcu montáž:** BC547B, collector na RESET cieľovej dosky, emitter na spoločnú GND, base cez 4k7 z reset-output GPIO a 47k pull-down base→GND. HIGH znamená aktívny RESET pull-down, LOW neaktívny.
+- **Výslovné obmedzenie:** Vrstva nie je funkčne zapnutá, fyzicky zapojená, commissioned ani safety-tested. D31/D9, XKC, D32/A0, BASIC/SMART, SystemMode, V5, R9/R10, SD a 180 s recovery sa nemenia.
 
 ### XKC SAFETY BEZ UART – PHYSICAL PASS
 
@@ -349,7 +360,7 @@ Tento dokument je živý register auditných nálezov, otvorených technických 
 - **Mega:** Po resetoch a obnovení komunikácie SMART_STABLE pokračovalo cez 10 až 170/180 s, nasledovalo RECOVERY: MEGA_AGREEMENT=ON a po prijatí vzdialeného Uno agreement SYSTEM_MODE=SMART REASON=FULL_SMART.
 - **Uno:** Po RECOVERY: UNO_SMART_STABLE=START nasledovalo po celom 180 s intervale RECOVERY: UNO_AGREEMENT=ON; následná diagnostika uvádzala UNO=OK LINK=OK AGR=ON.
 - **Záver:** 180 s stabilizácia, zapnutie agreement a návrat do FULL_SMART pri platných podmienkach fungujú. D31/D9 zostávajú statické agreement/permission výstupy, nie pulzný hardvérový watchdog.
-- **Výhrada:** Jednorazový externý D9 incident je vedený samostatne ako CLOSED / NOT_REPRODUCED_AFTER_3_COLD_BOOTS / ACCEPTED a nemení výsledok softvérového algoritmu; nejde o FIXED ani ROOT_CAUSE_FOUND a jeho presná príčina zostáva nepotvrdená.
+- **Výhrada:** D9 incident je vedený samostatne ako CLOSED / ROOT_CAUSE_IDENTIFIED / PHYSICAL_CONTACT_FAULT. Potvrdená bola prerušovaná fyzická kontaktná porucha konektora, nie chyba softvérového algoritmu.
 
 ### FYZICKÉ TESTY TEPLOTNÝCH FALLBACKOV – FULL_SMART
 
@@ -388,9 +399,10 @@ Tento dokument je živý register auditných nálezov, otvorených technických 
 - [x] **NOT REPRODUCED 2026-09-02:** vykonané tri samostatné cold-boot/power-cycle testy Uno s pripojenou agreement vetvou.
 - [x] **PHYSICAL PASS 3/3:** po 180 s bolo UNO_AGREEMENT=ON, AGR=ON, D9 približne +5 V a agreement relé fyzicky zoplo.
 - [x] **NOT REPRODUCED AFTER 3 COLD BOOTS:** kombinácia AGR=ON a fyzické D9 približne 0 V sa nezopakovala.
-- [x] **CLOSED / ACCEPTED:** D9 incident bol odstránený z aktívneho commissioning backlogu bez označenia FIXED alebo ROOT_CAUSE_FOUND.
+- [x] **SECOND REPRODUCTION / ROOT CAUSE IDENTIFIED:** neskoršia recidíva AGR=ON + fyzicky OFF relé umožnila manipuláciou reprodukovať prerušovaný kontakt na Uno D9 konektore/header spoji.
+- [x] **CLOSED / ROOT_CAUSE_IDENTIFIED / PHYSICAL_CONTACT_FAULT:** nejde o software bug ani chybu 180 s agreement algoritmu.
 
-Podmienený postup pri budúcom opakovaní: ešte pred rozpojením vetvy zmerať D9 priamo na Uno, vstup H/L modulu a jeho napájanie. AGR=ON samo nepotvrdzuje fyzické napätie ani polohu reléového kontaktu.
+Pri prípadnej recidíve skontrolovať a zmerať D9 kontakt ešte pred manipuláciou. AGR=ON samo nepotvrdzuje fyzické napätie ani polohu reléového kontaktu.
 
 ## POST-COMMISSIONING DIAGNOSTIC FOLLOW-UP
 

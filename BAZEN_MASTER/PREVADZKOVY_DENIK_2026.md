@@ -276,16 +276,28 @@ Táto sekcia nie je súčasťou doslovného RAW prepisu vyššie. Zachytáva fyz
 - Uno od RECOVERY: UNO_SMART_STABLE=START po celých 180 s prešlo na RECOVERY: UNO_AGREEMENT=ON; diagnostika následne uvádzala UNO=OK LINK=OK AGR=ON.
 - Výsledok: **PHYSICAL/SOFTWARE PASS.** D31/D9 sú statické agreement/permission výstupy, nie pulzný hardvérový watchdog.
 
-### Jednorazový incident Uno D9
+### Uno D9 agreement incident – fyzická príčina identifikovaná
 
 - Pri jednom teste Uno hlásilo agreement ON, ale na pripojenej D9 vetve bolo približne 0 V a relé nezoplo.
 - Po odpojení vodiča bolo priamo na D9 približne +5 V; po opätovnom pripojení zostala D9 HIGH a relé fungovalo. Ďalší reset/retest prešiel.
 - Po incidente boli vykonané tri samostatné cold-boot/power-cycle testy. Vo všetkých troch prebehlo UNO_SMART_STABLE korektne, po 180 s bolo UNO_AGREEMENT=ON a AGR=ON, D9 malo približne +5 V a agreement relé fyzicky zoplo.
 - Pôvodná kombinácia AGR=ON a fyzické D9 približne 0 V sa po troch cold bootoch nezopakovala.
-- Presná externá príčina zostáva nepotvrdená; možné oblasti sú H/L modul, napájanie, backfeed/power-up stav, vodič alebo spoj.
+- Neskôr 2026-09-02 sa stav AGR=ON a fyzicky vypnuté agreement relé znovu reprodukoval. Dotyk/meranie pri D9 vyvolalo chatter/cvakanie relé.
+- Manipulácia s konkrétnym D9 kontaktom poruchu reprodukovala alebo odstránila. Kontakt bol mechanicky zasunutý na doraz, ale elektricky nebol spoľahlivý.
+- Koreňová príčina: **INTERMITTENT PHYSICAL CONTACT AT UNO D9 CONNECTION**.
 - Aktuálne neexistuje fyzický readback napätia D9 ani kontaktu agreement relé; AGR=ON je iba softvérový command/state.
-- Stav: **CLOSED / NOT_REPRODUCED_AFTER_3_COLD_BOOTS / ACCEPTED.** Nie FIXED ani ROOT_CAUSE_FOUND; bez zmeny kódu.
-- Ak sa incident zopakuje, ešte pred rozpojením vetvy treba zmerať D9 priamo na Uno, vstup H/L modulu a jeho napájanie.
+- Stav: **CLOSED / ROOT_CAUSE_IDENTIFIED / PHYSICAL_CONTACT_FAULT.** Agreement algoritmus ani 180 s časovanie neboli chybné a nemenili sa.
+- Po oprave kontaktu zostáva bežné prevádzkové pozorovanie recidívy; AGR=ON naďalej nie je fyzický readback.
+
+### Mega ↔ Uno hardware cross-reset – software predpríprava
+
+- Stav: **PREPARED / DISABLED / PINS_TBD / NOT_COMMISSIONED**.
+- Mega aj Uno majú prípravu za `CROSS_RESET_ENABLED=0`; defaultný build neinicializuje nové GPIO, neposiela heartbeat a neresetuje peer.
+- Heartbeat je samostatný pulzný signál z hlavného loopu. UART, D31/D9 agreement, SystemMode, XKC a TOTAL STOP nie sú jeho watchdog autoritou.
+- Pripravené sú rollover-safe časy 500 ms toggle, 5 s timeout, 15 s startup grace, 15 s pre-reset servisné grace, 200 ms reset pulse a 15 s post-reset grace.
+- Pri jednej súvislej strate je povolený jeden resetovací pokus. Nový pokus je možný až po reálnom recovery potvrdenom najmenej dvoma novými heartbeat hranami.
+- Budúce resetové obvody majú používať BC547B s collectorom na RESET cieľa, emitterom na spoločnú GND, 4k7 do base a 47k base pull-down. Konkrétne GPIO zostávajú nepridelené.
+- Vrstva nie je fyzicky zapojená ani testovaná a nesmie sa označovať ako funkčná alebo commissioned.
 
 ### Teplotné fallbacky
 
