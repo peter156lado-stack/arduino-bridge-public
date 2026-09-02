@@ -23,10 +23,10 @@ Tento dokument je živý register auditných nálezov, otvorených technických 
 
 | STATUS | Počet |
 |---|---:|
-| OPEN | 11 |
+| OPEN | 12 |
 | FIXED_SOFTWARE | 6 |
 | DEFERRED | 6 |
-| WAITING_PHYSICAL_TEST | 2 |
+| WAITING_PHYSICAL_TEST | 1 |
 | PLANNED | 2 |
 | ACCEPTED_RESIDUAL_RISK | 1 |
 | NOT_A_PROBLEM | 0 |
@@ -215,12 +215,16 @@ Tento dokument je živý register auditných nálezov, otvorených technických 
 
 ### 20. SoftwareSerial a OneWire majú potvrdené timing riziko
 
-- **STATUS:** WAITING_PHYSICAL_TEST
+- **STATUS:** OPEN
 - **Závažnosť:** MEDIUM
 - **Problém:** Interval 5300 ms znižuje fázové kolízie, ale pri dlhých OneWire operáciách a opakovanom sensors.begin() ich úplne nevylučuje.
-- **Dopad:** Pri trvalej DS18B20 chybe môže Uno strácať alebo poškodzovať V5 komunikáciu.
-- **Istota:** Mechanizmus kolízie je známy; správanie V5/38400 pri trvalej chybe je **NEOVERENÉ**.
-- **Odporúčaný smer:** Fyzicky testovať V5 pri trvalej DS chybe a až podľa merania meniť timing.
+- **Dopad:** Pri trvalej DS18B20 chybe sa zvyšuje miera poškodených/neplatných alebo vynechaných V5 rámcov. V commissioning teste nenastal úplný link loss ani agreement loss, ale znížila sa komunikačná rezerva.
+- **Istota:** **PHYSICALLY_REPRODUCED_SYMPTOM / ROOT_CAUSE_NOT_PROVEN.** Silná časová korelácia s DS fault je potvrdená; presný mechanizmus, napríklad OneWire/sensors.begin() verzus SoftwareSerial timing collision, týmto testom definitívne dokázaný nebol. Jednotlivé link chyby existujú aj mimo DS fault.
+- **Odporúčaný smer:** Nález ponechať OPEN. Pri ďalšom samostatne schválenom diagnostickom teste časovo korelovať OneWire recovery, interrupt-off úseky a V5 chyby; nemeniť architektúru ani timing bez merania príčiny.
+- **Fyzický test 2026-09-02 – východisko:** Na bežiacom Uno bol odpojený UNO_TBOX DS18B20 a porucha zostala aktívna niekoľko minút. Pred TBOX_CHYBA už existovalo malé pozadie jednotlivých V5 chýb, približne CRC=0, INV=2, TO=0, GAP=3.
+- **Správanie počas poruchy:** Po EVENT: TBOX_CHYBA prešlo Uno korektne na UNO=DEGRADED a TBOX=ERR. LINK zostal OK, AGR zostal ON, TO zostal 0, T1/T2/T3 aj lokálna XKC zostali funkčné.
+- **Pozorované počítadlá:** Počas trvalej chyby narástli približne CRC 0→2, INV 2→4 a GAP 3→10; TO zostalo 0.
+- **Recovery bez resetu:** Po opätovnom pripojení TBOX vzniklo RECOVERY: TBOX_OK a Uno sa bez resetu vrátilo na UNO=OK LINK=OK AGR=ON. Nárast chýb sa výrazne utíšil: CRC/INV zostali 2/4, GAP dlho 10 a neskôr pribudol iba jeden na 11.
 
 ### 21. Mega obsahuje commissioning TEST R9 a neobmedzený String vstup
 
@@ -363,7 +367,8 @@ Tento dokument je živý register auditných nálezov, otvorených technických 
 - [ ] Fyzicky overiť absenciu R9/R10 boot LOW pulzu po softvérovej HIGH-latch oprave.
 - [ ] Overiť I2C stuck-bus správanie, čas do safety inicializácie a loop latenciu.
 - [ ] Zmerať Uno SD/stack watermark, SD fault čas a realistický worst-loop.
-- [ ] Overiť UART V5 pri trvalej DS18B20 chybe a opakovanom OneWire recovery.
+- [x] **PHYSICALLY_REPRODUCED_SYMPTOM 2026-09-02:** pri niekoľkominútovej trvalej UNO_TBOX chybe narástli CRC/INV/GAP, ale LINK a AGR zostali ON; po pripojení nastal recovery bez resetu.
+- [ ] **ROOT_CAUSE_NOT_PROVEN – AUDIT #20:** časovo izolovať OneWire/sensors.begin(), SoftwareSerial a jednotlivé V5 chyby; jednotlivé chyby existujú aj mimo DS fault.
 - [ ] Fyzicky overiť fallback Mega T1 + T4 → UNO_T1; aktuálne NOT TESTED / PHYSICAL ACCESS NOT PRACTICAL.
 - [x] **NOT REPRODUCED 2026-09-02:** vykonané tri samostatné cold-boot/power-cycle testy Uno s pripojenou agreement vetvou.
 - [x] **PHYSICAL PASS 3/3:** po 180 s bolo UNO_AGREEMENT=ON, AGR=ON, D9 približne +5 V a agreement relé fyzicky zoplo.

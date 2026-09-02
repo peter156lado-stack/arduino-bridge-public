@@ -297,3 +297,14 @@ Táto sekcia nie je súčasťou doslovného RAW prepisu vyššie. Zachytáva fyz
 - Pri správnom T2 remote fallbacku sa súčasne objavil starší text SYSTEM: HAVARIA a autoritatívny MODE_DEGRADED. Pri T1 local fallbacku diagnostika uviedla DIAG: T1=OK napriek chybe fyzického T1, pretože efektívna pool funkcia bola platná cez T4. Obe pozorovania sú evidované ako terminologický follow-up, nie ako chyba fallbacku.
 - Pri ustálenom behu boli FRAME_INVALID=0, SEQ_GAP=0 a CRC_FAIL prevažne 0; jednotlivé REPLY_TIMEOUT vznikli počas fyzickej manipulácie.
 - Mega loop bol typicky približne 0,39–0,41 s, maximum približne 409 752 µs, OVER_1000MS=0 a OVER_1500MS=0. Toto normálne pozorovanie neuzatvára riziko stuck I2C alebo blocking fault.
+
+### Audit #20 – trvalá porucha UNO_TBOX DS18B20
+
+- Na bežiacom Uno bol fyzicky odpojený UNO_TBOX a porucha bola ponechaná niekoľko minút.
+- Pred poruchou už existovalo malé pozadie jednotlivých V5 chýb, približne CRC=0, INV=2, TO=0 a GAP=3.
+- Po EVENT: TBOX_CHYBA prešlo Uno na UNO=DEGRADED a TBOX=ERR. LINK zostal OK, AGR zostal ON, TO zostalo 0, ostatné T1/T2/T3 a XKC zostali funkčné.
+- Počas trvalej poruchy narástli počítadlá približne na CRC=2, INV=4 a GAP=10; TO zostalo 0.
+- Po opätovnom pripojení vzniklo RECOVERY: TBOX_OK a Uno sa **bez resetu** vrátilo na UNO=OK LINK=OK AGR=ON.
+- Po recovery sa rast výrazne utíšil: CRC/INV zostali 2/4, GAP zostal dlho 10 a neskôr pribudol iba jeden na 11.
+- Záver: persistent DS18B20 fault fyzicky reprodukuje zvýšenú mieru V5/SoftwareSerial komunikačných chýb bez úplnej straty linky alebo agreement. Korelácia je silná, ale presný mechanizmus, napríklad OneWire/sensors.begin() timing kolízia so SoftwareSerial, nie je týmto testom definitívne dokázaný; jednotlivé link chyby existujú aj mimo DS fault.
+- Stav: **PHYSICALLY_REPRODUCED_SYMPTOM / ROOT_CAUSE_NOT_PROVEN.** Audit #20 zostáva OPEN a kód sa nemenil.
