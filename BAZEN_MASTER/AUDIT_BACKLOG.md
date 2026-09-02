@@ -295,17 +295,39 @@ Tento dokument je živý register auditných nálezov, otvorených technických 
 - **Odporúčaný smer:** Odstrániť alebo premenovať iba po samostatnom schválení údržby; nevykonávať funkčný refaktor.
 - **Výslovná výnimka:** Mega R5–R8 a R11–R16 sú PLANNED / RESERVED OUTPUT – OK. Tento nález sa na ne nevzťahuje.
 
+## COMMISSIONING INCIDENTS – 2026-09-02
+
+### UNO D9 AGREEMENT OUTPUT
+
+- **STATUS INCIDENTU:** OBSERVED_ONCE / WAITING_REPRODUCTION
+- **Priebeh:** Po fyzickom teste výpadku Mega↔Uno UART a následnom obnovení komunikácie Uno softvérovo korektne dokončilo celý 180 s stabilizačný interval. Sériový log obsahoval RECOVERY: UNO_AGREEMENT=ON a pravidelná diagnostika zobrazovala AGR=ON.
+- **Fyzické pozorovanie:** Pri pripojenom agreement obvode bolo na fyzickej vetve D9 namerané približne 0 V a relé nezoplo. Po rozpojení príslušného vodiča/vetvy sa priamo na Uno D9 okamžite objavilo približne +5 V. Po opätovnom pripojení vodiča zostalo D9 HIGH a agreement relé začalo fungovať správne. Následný reset a opakovaný test sa už správali normálne.
+- **Potvrdené:** 180 s agreement algoritmus softvérovo PASS. Uno D9 dokáže vytvoriť HIGH.
+- **Nepotvrdená príčina:** Incident zatiaľ poukazuje na možný externý hardvérový jav v H/L module, jeho napájaní, backfeed/power-up stave, vodiči alebo spoji. Presná príčina je **NEPOTVRDENÁ**.
+- **Rozhodnutie:** Produkčný kód sa kvôli jednorazovému incidentu nemení. Najprv sa musí incident reprodukovať a fyzicky izolovať jeho zdroj.
+
+### XKC SAFETY BEZ UART – PHYSICAL PASS
+
+- **Výsledok:** PHYSICAL PASS
+- **Priebeh:** Mega↔Uno UART bol fyzicky odpojený. Obe lokálne XKC vetvy po viac než 5 s súvislého LOW_WATER fyzicky zopli svoje vlastné TOTAL STOP relé: Mega D30 aktivovalo Mega D32 a Uno A2 aktivovalo Uno A0.
+- **Recovery:** Po obnovení WATER a 10 s súvislého potvrdenia obe TOTAL STOP relé odpadli.
+- **Záver:** Lokálna XKC safety na Mega aj Uno funguje nezávisle od UART komunikácie. Test nemení otvorené riziko resetu počas trvalého LOW WATER ani ostatné nevykonané fyzické testy.
+
 ## CURRENT PHYSICAL TEST BACKLOG
 
-- [ ] Mega XKC: D30 = LOW WATER musí aktivovať D32 po 5 s súvislého potvrdenia.
-- [ ] Uno XKC: A2 = LOW WATER musí aktivovať A0 po 5 s súvislého potvrdenia.
-- [ ] Overiť lokálny XKC trip bez UART a bez pomoci druhej dosky.
-- [ ] Overiť WATER recovery až po 10 s súvislého WATER.
+- [x] **PHYSICAL PASS 2026-09-02:** Mega XKC D30 aktivovalo D32 po viac než 5 s súvislého LOW WATER.
+- [x] **PHYSICAL PASS 2026-09-02:** Uno XKC A2 aktivovalo A0 po viac než 5 s súvislého LOW WATER.
+- [x] **PHYSICAL PASS 2026-09-02:** obe lokálne XKC vetvy aktivovali svoje TOTAL STOP relé pri fyzicky odpojenom Mega↔Uno UART.
+- [x] **PHYSICAL PASS 2026-09-02:** po WATER a 10 s súvislého recovery obe TOTAL STOP relé odpadli.
 - [ ] Overiť reset jednej aj oboch dosiek počas trvalého LOW WATER a zmerať okno bez tripu.
 - [ ] Fyzicky overiť absenciu R9/R10 boot LOW pulzu po softvérovej HIGH-latch oprave.
 - [ ] Overiť I2C stuck-bus správanie, čas do safety inicializácie a loop latenciu.
 - [ ] Zmerať Uno SD/stack watermark, SD fault čas a realistický worst-loop.
 - [ ] Overiť UART V5 pri trvalej DS18B20 chybe a opakovanom OneWire recovery.
+- [ ] Zopakovať cold boot/power-cycle Uno spolu s pripojenou H/L agreement vetvou.
+- [ ] Po 180 s zmerať D9 priamo na Uno aj na vstupe H/L modulu.
+- [ ] Overiť, či sa kombinácia AGR=ON a fyzické D9 približne 0 V zopakuje.
+- [ ] Ak sa incident zopakuje, postupne izolovať napájanie, H/L modul, vodič a spoj a zistiť, čo sťahuje D9 do LOW.
 
 ## CLOSED IN HOME SAFE FIX PACK – 2026-09-02
 
