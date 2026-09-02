@@ -23,8 +23,8 @@ Tento dokument je živý register auditných nálezov, otvorených technických 
 
 | STATUS | Počet |
 |---|---:|
-| OPEN | 12 |
-| FIXED_SOFTWARE | 7 |
+| OPEN | 11 |
+| FIXED_SOFTWARE | 8 |
 | DEFERRED | 4 |
 | WAITING_PHYSICAL_TEST | 1 |
 | PLANNED | 2 |
@@ -297,12 +297,14 @@ Tento dokument je živý register auditných nálezov, otvorených technických 
 
 ### 27. Bridge publikovaný snapshot nemusí zodpovedať aktuálnym zdrojom
 
-- **STATUS:** OPEN
+- **STATUS:** FIXED_SOFTWARE
 - **Závažnosť:** MEDIUM, publikačné
-- **Problém:** Audit našiel rozdiely medzi publisher/synchronizačným stavom a lokálnymi produkčnými zdrojmi.
-- **Dopad:** Publikovaný prehľad alebo externý spotrebiteľ nemusí obsahovať aktuálne XKC a HOME SAFE opravy.
-- **Istota:** Rozdiely snapshotu pri audite boli isté; aktuálny beh služby a publikovaný remote stav sú **NEOVERENÉ**.
-- **Odporúčaný smer:** Read-only preveriť službu a synchronizačný stav, potom samostatne schváliť bezpečné obnovenie publikovania.
+- **Pôvodný problém:** Audit správne našiel, že lokálny ArduinoBridge `current.json` zostal na revízii `000002` z 2026-09-01, hoci samostatný GitHub publikačný tok už obsahoval dnešný stav. Lokálny `sync.py` po tejto revízii nebol znovu spustený; podľa projektu nejde o watcher ani Windows service a lokálny sync log nemal po 2026-09-01 ďalší scan.
+- **Vykonané:** Existujúci atomický publisher mechanizmus bol spustený bez zmeny whitelistu, redaction pravidiel alebo produkčných zdrojov. Vytvoril nový kompletný CURRENT snapshot so všetkými 21 publishovateľnými súbormi; stará revízia `000002` zostala nezmenená. Manifest/hash kontrola, secret guard a ESP redakcia prešli.
+- **Overenie:** Lokálny CURRENT zodpovedá aktuálnemu lokálnemu publishovateľnému stavu a GitHub `main` po normalizácii CRLF/LF. Redigované ESP credentials sú zámerná a správna odlišnosť. Quick Tunnel nie je zdroj pravdy pre public snapshot.
+- **Detail:** `PUBLICATION_SYNC_VERIFIED / LOCAL_CURRENT_REFRESHED / CURRENT_SNAPSHOT_MATCHES_PUBLIC_PUBLISHABLE_STATE`
+- **Istota:** Pôvodný mismatch aj chýbajúci lokálny scan boli potvrdené; obnovený stav je hashovo overený.
+- **Odporúčaný smer:** Bez ďalšej opravy. Pri budúcich zmenách zabezpečiť vedomý beh existujúceho lokálneho `sync.py` alebo overiť CURRENT po samostatnom GitHub publish kroku.
 
 ### 28. Nepoužitá Uno safety kostra a stale komentáre
 
