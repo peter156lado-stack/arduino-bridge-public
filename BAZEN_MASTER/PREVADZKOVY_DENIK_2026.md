@@ -321,3 +321,14 @@ Táto sekcia nie je súčasťou doslovného RAW prepisu vyššie. Zachytáva fyz
 - Po 180 s vzniklo RECOVERY: UNO_AGREEMENT=ON a následná diagnostika uvádzala UNO=OK LINK=OK AGR=ON SD=CHYBA.
 - Výsledok: **SD ABSENT AT BOOT / RUN = PHYSICAL PASS.** SD logger nie je podmienkou bootu, LINK, XKC ani agreement.
 - AUDIT #19 ako celok zostáva OPEN: nezmeraný je SRAM/stack watermark pri približne 796 B voľnej SRAM a worst-case runtime/SD blocking pri chybovom alebo pomalom médiu.
+
+### Audit #7 – fyzická izolácia SMART/BASIC autority
+
+- Systém bol v SMART a niektoré SMART relé/výstupy boli aktívne.
+- Mega↔Uno komunikácia bola fyzicky prerušená. Po timeoute systém korektne prešiel do BASIC a agreement/povoľovacia fyzická cesta odpadla.
+- SMART commandy alebo reléové výstupy, ktoré boli pred stratou komunikácie ON, mohli zostať ON na vlastnom výstupe. Ich výkonová/povoľovacia vetva však stratila prívod, preto nemali fyzickú autoritu ovládať zariadenie.
+- BASIC vetva zostala autoritatívna. Po obnovení komunikácie systém normálne dokončil recovery späť.
+- Potvrdené pravidlo: **COMMAND/RELAY STATE != PHYSICAL POWER AUTHORITY.**
+- Aktuálna architektúra zámerne používa fyzické odobratie povoľovacej/napájacej autority pri BASIC, nie povinné softvérové vynulovanie všetkých SMART commandov.
+- Residual behavior: po obnovení SMART/povoľovacej vetvy môže stále platný ON command znovu nadobudnúť fyzickú autoritu bez nového ON príkazu. Prevádzkovateľ toto správanie akceptuje.
+- Výsledok: **PHYSICALLY_CONFIRMED / ARCHITECTURALLY_ACCEPTED / CLOSED.** V taxonómii auditu ACCEPTED_RESIDUAL_RISK, nie FIXED_SOFTWARE; bez zmeny kódu.

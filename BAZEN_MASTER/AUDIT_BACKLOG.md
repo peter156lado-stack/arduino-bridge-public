@@ -25,10 +25,10 @@ Tento dokument je živý register auditných nálezov, otvorených technických 
 |---|---:|
 | OPEN | 12 |
 | FIXED_SOFTWARE | 6 |
-| DEFERRED | 6 |
+| DEFERRED | 5 |
 | WAITING_PHYSICAL_TEST | 1 |
 | PLANNED | 2 |
-| ACCEPTED_RESIDUAL_RISK | 1 |
+| ACCEPTED_RESIDUAL_RISK | 2 |
 | NOT_A_PROBLEM | 0 |
 | **Spolu** | **28** |
 
@@ -94,12 +94,16 @@ Tento dokument je živý register auditných nálezov, otvorených technických 
 
 ### 7. SystemMode nie je všeobecný gate R9/R10 a override ciest
 
-- **STATUS:** DEFERRED
+- **STATUS:** ACCEPTED_RESIDUAL_RISK
 - **Závažnosť:** HIGH, fyzicky podmienené
-- **Problém:** Regulácia, manual/test override a fyzické výstupy nepoužívajú SystemMode ako všeobecný výstupný gate.
-- **Dopad:** Príkaz môže zostať aktívny počas STOP alebo sa po recovery obnoviť; požadované správanie v BASIC závisí od fyzickej architektúry.
-- **Istota:** Cesty v kóde sú isté; správna fyzická matica pre STOP/BASIC je **NEOVERENÁ**.
-- **Odporúčaný smer:** Najprv schváliť presnú mode/output maticu a až potom meniť gating. HOME SAFE FIX PACK túto časť zámerne nemenil.
+- **Pôvodný problém:** Regulácia, manual/test override a fyzické SMART výstupy nepoužívajú SystemMode ako všeobecný softvérový output gate. SMART command alebo reléový výstup preto môže pri prechode do BASIC zostať ON.
+- **Fyzicky potvrdený dopad:** **COMMAND/RELAY STATE != PHYSICAL POWER AUTHORITY.** Po fyzickom prerušení Mega↔Uno komunikácie systém po timeoute prešiel zo SMART do BASIC, agreement/povoľovacia cesta odpadla a aktívne SMART relé mohli zostať commanded/fyzicky zopnuté na vlastnom výstupe, ale ich výkonová/povoľovacia vetva stratila prívod. Nemali preto fyzickú autoritu ovládať zariadenie a BASIC vetva zostala autoritatívna.
+- **Istota:** **PHYSICAL MODE ISOLATION CONFIRMED 2026-09-02.** Test prešiel na reálnom zapojení a po obnovení komunikácie systém normálne dokončil recovery späť.
+- **Architektonické rozhodnutie:** Aktuálna architektúra zámerne odoberá SMART fyzickú povoľovaciu/napájaciu autoritu namiesto povinného softvérového nulovania všetkých SMART commandov. Prevádzkovateľ toto správanie považuje za správne a akceptuje ho.
+- **Residual behavior:** Ak pri obnovení SMART/povoľovacej vetvy stále platí ON command, môže bez nového ON príkazu znovu nadobudnúť fyzickú autoritu. Ide o známe a prevádzkovateľom akceptované správanie aktuálnej architektúry.
+- **Odporúčaný smer:** Nález je uzavretý bez zmeny SystemMode, R9/R10 alebo BASIC/SMART logiky. Znovu ho otvoriť iba pri zmene fyzickej povoľovacej architektúry alebo požiadavky na command reset pri recovery.
+- **STATUS TESTU:** PHYSICALLY_CONFIRMED / ARCHITECTURALLY_ACCEPTED / CLOSED
+- **Taxonomická poznámka:** Hlavný status používa existujúce ACCEPTED_RESIDUAL_RISK; nejde o FIXED_SOFTWARE a R9/R10 nie sú v BASIC softvérovo nútene OFF.
 
 ### 8. Active-LOW R9/R10 mali neistý boot latch
 
@@ -368,6 +372,7 @@ Tento dokument je živý register auditných nálezov, otvorených technických 
 
 ## CURRENT PHYSICAL TEST BACKLOG
 
+- [x] **AUDIT #7 – PHYSICAL MODE ISOLATION CONFIRMED / ARCHITECTURALLY ACCEPTED:** pri strate UART prešiel systém do BASIC a fyzická povoľovacia autorita SMART odpadla aj pri naďalej ON SMART commande.
 - [x] **PHYSICAL PASS 2026-09-02:** Mega XKC D30 aktivovalo D32 po viac než 5 s súvislého LOW WATER.
 - [x] **PHYSICAL PASS 2026-09-02:** Uno XKC A2 aktivovalo A0 po viac než 5 s súvislého LOW WATER.
 - [x] **PHYSICAL PASS 2026-09-02:** obe lokálne XKC vetvy aktivovali svoje TOTAL STOP relé pri fyzicky odpojenom Mega↔Uno UART.
