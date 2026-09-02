@@ -248,3 +248,41 @@ Vlhkosť 35 zapálení horák
 
 Pri budúcej analýze treba vždy odlíšiť priamo zapísané hodnoty od odvodených záverov. Tento súbor uchováva zdrojový záznam; stručné a dobre podložené závery patria do MASTER_KONCEPT.md.
 
+## Commissioning bazénovej automatiky – 2026-09-02
+
+Táto sekcia nie je súčasťou doslovného RAW prepisu vyššie. Zachytáva fyzicky vykonaný commissioning produkčnej zostavy.
+
+### XKC Safety V1
+
+- Pri fyzicky odpojenom Mega↔Uno UART aktivovala lokálna Mega vetva po viac než 5 s LOW_WATER svoj D32 TOTAL STOP a lokálna Uno vetva svoj A0 TOTAL STOP.
+- Obe fyzické TOTAL STOP relé reálne zopli.
+- Pri návrate WATER zostali tripnuté počas recovery a po približne 10 s stabilného WATER obe fyzicky odpadli.
+- Nový LOW_WATER počas recovery správne vynuloval 10 s recovery timer.
+- Výsledok: **PHYSICAL PASS / COMMISSIONED; lokálne trip/recovery autority sú nezávislé od UART.**
+- Samostatné riziko resetu MCU počas už trvajúceho LOW_WATER zostáva otvorené.
+
+### Agreement 180 s
+
+- Mega po resetoch a obnovení komunikácie prešlo SMART_STABLE intervalom až po RECOVERY: MEGA_AGREEMENT=ON a po prijatí Uno agreement do SYSTEM_MODE=SMART REASON=FULL_SMART.
+- Uno od RECOVERY: UNO_SMART_STABLE=START po celých 180 s prešlo na RECOVERY: UNO_AGREEMENT=ON; diagnostika následne uvádzala UNO=OK LINK=OK AGR=ON.
+- Výsledok: **PHYSICAL/SOFTWARE PASS.** D31/D9 sú statické agreement/permission výstupy, nie pulzný hardvérový watchdog.
+
+### Jednorazový incident Uno D9
+
+- Pri jednom teste Uno hlásilo agreement ON, ale na pripojenej D9 vetve bolo približne 0 V a relé nezoplo.
+- Po odpojení vodiča bolo priamo na D9 približne +5 V; po opätovnom pripojení zostala D9 HIGH a relé fungovalo. Ďalší reset/retest prešiel.
+- Presná externá príčina zostáva nepotvrdená; možné oblasti sú H/L modul, napájanie, backfeed/power-up stav, vodič alebo spoj.
+- Stav: **OBSERVED_ONCE / WAITING_REPRODUCTION.** Bez zmeny kódu.
+
+### Teplotné fallbacky
+
+- **PHYSICAL PASS:** Mega T2/H2 odpojený → platný UNO_T2 približne 26,00 °C → T2_REMOTE_FALLBACK, MODE_DEGRADED, agreement ON, po obnovení FULL_SMART.
+- **PHYSICAL PASS:** Mega T3/G2 odpojený → platný UNO_T3 približne 19,75 °C → T3_REMOTE_FALLBACK, MODE_DEGRADED, agreement ON, po obnovení FULL_SMART.
+- **PHYSICAL PASS:** Mega T1/H1 odpojený → platný Mega T4/H3 približne 26,2 °C → POOL_LOCAL_FALLBACK, POOL=OK, MODE_DEGRADED, agreement ON, bez BASIC/STOP.
+- **NOT TESTED / PHYSICAL ACCESS NOT PRACTICAL:** súčasné odpojenie Mega T1+T4 a overenie UNO_T1 vzdialeného fallbacku.
+
+### Diagnostika a timing
+
+- Pri správnom T2 remote fallbacku sa súčasne objavil starší text SYSTEM: HAVARIA a autoritatívny MODE_DEGRADED. Pri T1 local fallbacku diagnostika uviedla DIAG: T1=OK napriek chybe fyzického T1, pretože efektívna pool funkcia bola platná cez T4. Obe pozorovania sú evidované ako terminologický follow-up, nie ako chyba fallbacku.
+- Pri ustálenom behu boli FRAME_INVALID=0, SEQ_GAP=0 a CRC_FAIL prevažne 0; jednotlivé REPLY_TIMEOUT vznikli počas fyzickej manipulácie.
+- Mega loop bol typicky približne 0,39–0,41 s, maximum približne 409 752 µs, OVER_1000MS=0 a OVER_1500MS=0. Toto normálne pozorovanie neuzatvára riziko stuck I2C alebo blocking fault.

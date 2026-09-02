@@ -301,17 +301,44 @@ Tento dokument je živý register auditných nálezov, otvorených technických 
 
 - **STATUS INCIDENTU:** OBSERVED_ONCE / WAITING_REPRODUCTION
 - **Priebeh:** Po fyzickom teste výpadku Mega↔Uno UART a následnom obnovení komunikácie Uno softvérovo korektne dokončilo celý 180 s stabilizačný interval. Sériový log obsahoval RECOVERY: UNO_AGREEMENT=ON a pravidelná diagnostika zobrazovala AGR=ON.
-- **Fyzické pozorovanie:** Pri pripojenom agreement obvode bolo na fyzickej vetve D9 namerané približne 0 V a relé nezoplo. Po rozpojení príslušného vodiča/vetvy sa priamo na Uno D9 okamžite objavilo približne +5 V. Po opätovnom pripojení vodiča zostalo D9 HIGH a agreement relé začalo fungovať správne. Následný reset a opakovaný test sa už správali normálne.
+- **Fyzické pozorovanie:** Pri pripojenom agreement obvode bolo na fyzickej vetve D9 namerané približne 0 V a relé nezoplo. Mechanické dotiahnutie spoja bolo už pred incidentom nadoraz. Po rozpojení príslušného vodiča/vetvy sa priamo na Uno D9 okamžite objavilo približne +5 V. Po opätovnom pripojení vodiča zostalo D9 HIGH a agreement relé začalo fungovať správne. Následný reset a opakovaný test sa už správali normálne.
 - **Potvrdené:** 180 s agreement algoritmus softvérovo PASS. Uno D9 dokáže vytvoriť HIGH.
 - **Nepotvrdená príčina:** Incident zatiaľ poukazuje na možný externý hardvérový jav v H/L module, jeho napájaní, backfeed/power-up stave, vodiči alebo spoji. Presná príčina je **NEPOTVRDENÁ**.
 - **Rozhodnutie:** Produkčný kód sa kvôli jednorazovému incidentu nemení. Najprv sa musí incident reprodukovať a fyzicky izolovať jeho zdroj.
 
 ### XKC SAFETY BEZ UART – PHYSICAL PASS
 
-- **Výsledok:** PHYSICAL PASS
+- **Výsledok:** PHYSICAL PASS / COMMISSIONED
 - **Priebeh:** Mega↔Uno UART bol fyzicky odpojený. Obe lokálne XKC vetvy po viac než 5 s súvislého LOW_WATER fyzicky zopli svoje vlastné TOTAL STOP relé: Mega D30 aktivovalo Mega D32 a Uno A2 aktivovalo Uno A0.
-- **Recovery:** Po obnovení WATER a 10 s súvislého potvrdenia obe TOTAL STOP relé odpadli.
+- **Recovery:** Pri návrate WATER zostali obe vetvy tripnuté počas recovery. Po približne 10 s stabilného WATER obe TOTAL STOP relé fyzicky odpadli. Nový LOW_WATER počas recovery správne vynuloval 10 s recovery interval.
 - **Záver:** Lokálna XKC safety na Mega aj Uno funguje nezávisle od UART komunikácie. Test nemení otvorené riziko resetu počas trvalého LOW WATER ani ostatné nevykonané fyzické testy.
+
+### AGREEMENT 180 s – PHYSICAL/SOFTWARE PASS
+
+- **Výsledok:** PHYSICAL/SOFTWARE PASS
+- **Mega:** Po resetoch a obnovení komunikácie SMART_STABLE pokračovalo cez 10 až 170/180 s, nasledovalo RECOVERY: MEGA_AGREEMENT=ON a po prijatí vzdialeného Uno agreement SYSTEM_MODE=SMART REASON=FULL_SMART.
+- **Uno:** Po RECOVERY: UNO_SMART_STABLE=START nasledovalo po celom 180 s intervale RECOVERY: UNO_AGREEMENT=ON; následná diagnostika uvádzala UNO=OK LINK=OK AGR=ON.
+- **Záver:** 180 s stabilizácia, zapnutie agreement a návrat do FULL_SMART pri platných podmienkach fungujú. D31/D9 zostávajú statické agreement/permission výstupy, nie pulzný hardvérový watchdog.
+- **Výhrada:** Jednorazový externý D9 incident je vedený samostatne ako OBSERVED_ONCE / WAITING_REPRODUCTION a nemení výsledok softvérového algoritmu.
+
+### FYZICKÉ TESTY TEPLOTNÝCH FALLBACKOV – FULL_SMART
+
+| Test | Pozorovaný výsledok | Stav |
+|---|---|---|
+| Mega T2/H2 odpojený | T2 = -127 °C/CHYBA; platný UNO_T2 približne 26,00 °C bol použitý ako REMOTE_FALLBACK; MODE_DEGRADED / T2_REMOTE_FALLBACK; Mega agreement zostal ON; po pripojení návrat FULL_SMART | **PHYSICAL PASS** |
+| Mega T3/G2 odpojený | T3 = -127 °C/CHYBA; platný UNO_T3 približne 19,75 °C bol použitý ako UNO_T3_REMOTE_FALLBACK; MODE_DEGRADED / T3_REMOTE_FALLBACK; Mega agreement zostal ON; po pripojení návrat FULL_SMART | **PHYSICAL PASS** |
+| Mega T1/H1 odpojený | T1 = -127 °C/CHYBA; platný Mega T4/H3 približne 26,2 °C bol použitý ako LOCAL_FALLBACK; POOL=OK; MODE_DEGRADED / POOL_LOCAL_FALLBACK; Mega agreement zostal ON; bez BASIC/STOP | **PHYSICAL PASS – T1 → T4** |
+| Mega T1 + T4 odpojené | Pre fyzicky nepraktický prístup ku konektorom nebolo vykonané overenie vzdialeného UNO_T1 fallbacku | **NOT TESTED / PHYSICAL ACCESS NOT PRACTICAL** |
+
+### DIAGNOSTICKÉ A TIMING POZOROVANIA
+
+- **STATUS FOLLOW-UP:** DEFERRED / DIAGNOSTIC TERMINOLOGY
+- Počas funkčne správneho T2 remote fallbacku sa súčasne zobrazilo SYSTEM: HAVARIA a autoritatívne SYSTEM_MODE=DEGRADED REASON=T2_REMOTE_FALLBACK. Starší text SYSTEM: HAVARIA je diagnosticky mätúci, ale fallback ani SystemMode rozhodnutie tým neboli chybné.
+- Počas T1 local fallbacku bol fyzický T1 v stave CHYBA, efektívny pool bol platný cez T4, ale diagnostika súčasne uvádzala DIAG: T1=OK T2=OK SUSPECT=NONE. Ide o terminologický/diagnostický nesúlad, nie potvrdenú chybu fallbacku.
+- Kód sa kvôli týmto pozorovaniam teraz nemení; textové vrstvy sa majú neskôr zosúladiť s rozdielom medzi fyzickým senzorom a efektívnou funkčnou hodnotou.
+- Počas ustáleného behu rámce pribúdali, CRC_FAIL bolo prevažne 0, FRAME_INVALID=0 a SEQ_GAP=0. Niekoľko jednotlivých REPLY_TIMEOUT vzniklo počas fyzickej manipulácie/testovania.
+- Mega loop bol typicky približne 0,39–0,41 s, pozorované maximum približne 409 752 µs, OVER_1000MS=0 a OVER_1500MS=0.
+- Toto je iba commissioning pozorovanie normálneho behu. Neuzatvára auditný nález stuck I2C, blocking fault ani worst-loop pri poruche.
 
 ## CURRENT PHYSICAL TEST BACKLOG
 
@@ -324,10 +351,16 @@ Tento dokument je živý register auditných nálezov, otvorených technických 
 - [ ] Overiť I2C stuck-bus správanie, čas do safety inicializácie a loop latenciu.
 - [ ] Zmerať Uno SD/stack watermark, SD fault čas a realistický worst-loop.
 - [ ] Overiť UART V5 pri trvalej DS18B20 chybe a opakovanom OneWire recovery.
+- [ ] Fyzicky overiť fallback Mega T1 + T4 → UNO_T1; aktuálne NOT TESTED / PHYSICAL ACCESS NOT PRACTICAL.
 - [ ] Zopakovať cold boot/power-cycle Uno spolu s pripojenou H/L agreement vetvou.
 - [ ] Po 180 s zmerať D9 priamo na Uno aj na vstupe H/L modulu.
 - [ ] Overiť, či sa kombinácia AGR=ON a fyzické D9 približne 0 V zopakuje.
 - [ ] Ak sa incident zopakuje, postupne izolovať napájanie, H/L modul, vodič a spoj a zistiť, čo sťahuje D9 do LOW.
+
+## POST-COMMISSIONING DIAGNOSTIC FOLLOW-UP
+
+- [ ] **DEFERRED:** zosúladiť starší text SYSTEM: HAVARIA s autoritatívnym MODE_DEGRADED pri bezpečne fungujúcom fallbacku.
+- [ ] **DEFERRED:** rozlíšiť v texte diagnostiky chybu fyzického T1 od platnej efektívnej pool funkcie cez T4/UNO_T1.
 
 ## CLOSED IN HOME SAFE FIX PACK – 2026-09-02
 

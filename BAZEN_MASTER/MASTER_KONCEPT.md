@@ -71,7 +71,7 @@ Schválená hierarchia je **SMART → DEGRADED → BASIC → STOP**:
 
 Základné prechody sú: zvládnuteľná porucha `SMART → DEGRADED`, strata dôvery v SMART vrstvu `SMART/DEGRADED → BASIC` a kritická fyzická porucha `SMART/DEGRADED/BASIC → príslušný STOP`. Návrat po chybe nemusí byť okamžitý; recovery, stabilizačné časy a ACK sa schvália samostatne.
 
-### Základný autoritatívny runtime `SYSTEM_MODE` – IMPLEMENTOVANÉ / ČAKÁ NA FYZICKÝ TEST
+### Základný autoritatívny runtime `SYSTEM_MODE` – IMPLEMENTOVANÉ / VYBRANÉ PRECHODY FYZICKY POTVRDENÉ
 
 Mega obsahuje jedinú autoritatívnu premennú `SystemMode systemMode` so stavmi `MODE_SMART`, `MODE_DEGRADED`, `MODE_BASIC` a `MODE_STOP`. Resolver sa vykonáva na jednom mieste po aktuálnom `bezpecnost()` a pred reguláciou/výstupmi; týmto checkpointom režim iba pravdivo sumarizuje existujúci stav a nemení reguláciu ani fyzické relé.
 
@@ -115,7 +115,7 @@ UART nesmie byť jedinou safety pamäťou ani jediným dôkazom `BASIC_ALLOWED=N
 
 Toto pravidlo nemení vlastníctvo W1209 supervision: patrí Mega a zostáva samostatnou funkciou. Uno týmto nezískava oprávnenie resetovať ani odpájať W1209.
 
-**Aktuálny implementačný stav:** TOTAL STOP relé sú osadené, samostatne napájané a ich sériová kontaktná cesta `COM–NC` pred WAGO rozdelením do BASIC_R1/R2 je fyzicky zapojená. Mega D32 a Uno A0 sú pripojené a priamym commissioning testom overené. XKC Safety V1 je prvá konkrétna automatická TOTAL STOP podmienka: každá doska používa iba vlastný lokálny XKC vstup, po 5 000 ms LOW WATER aktivuje vlastné relé a po 10 000 ms WATER ho uvoľní. Model `FAULT_PRIORITY/BASIC_ALLOWED` ani iné automatické TOTAL STOP dôvody zatiaľ nie sú zapojené do produkčného rozhodovania. Automatická XKC reakcia ešte čaká na fyzický test pri bazéne; dokumentácia preto nepredstiera jeho ukončenie.
+**Aktuálny implementačný stav:** TOTAL STOP relé sú osadené, samostatne napájané a ich sériová kontaktná cesta `COM–NC` pred WAGO rozdelením do BASIC_R1/R2 je fyzicky zapojená. Mega D32 a Uno A0 sú pripojené a priamym commissioning testom overené. XKC Safety V1 je prvá konkrétna automatická TOTAL STOP podmienka: každá doska používa iba vlastný lokálny XKC vstup, po 5 000 ms LOW WATER aktivuje vlastné relé a po 10 000 ms WATER ho uvoľní. Dňa 2026-09-02 obe lokálne vetvy pri fyzicky odpojenom UART samostatne zopli svoje TOTAL STOP relé, po WATER a 10 s recovery ich uvoľnili a prerušený recovery interval správne začal odznova; výsledok je `PHYSICAL PASS / COMMISSIONED`. Otvorené zostáva samostatné riziko resetu MCU počas trvalého LOW WATER. Model `FAULT_PRIORITY/BASIC_ALLOWED` ani iné automatické TOTAL STOP dôvody zatiaľ nie sú zapojené do produkčného rozhodovania.
 
 #### OPEN / REQUIRED BEFORE IMPLEMENTATION – zachovanie BASIC inhibície po smrti detegujúcej dosky
 
@@ -819,7 +819,7 @@ Fyzické kanály 5–16 zostávajú vyhradené Mega/SMART. Aktívne sú dnes iba
 
 1. HY-SRF05 Uno: fyzicky testovaný na D3/D4; nezávislý monitorovací senzor.
 2. HY-SRF05 Mega: fyzicky funkčne overený na D38 TRIG/D39 ECHO meraním približne 19,3–19,8 cm; nezávislý monitorovací senzor s monitor-only kódom.
-3. XKC-Y25-NPN: jeden spoločný LOW WATER sensing element, fyzicky čítaný cez dve samostatné optočlenové cesty na Mega D30 a Uno A2; WATER, LOW_WATER, konflikt kanálov, otvorený vstup aj V5 prenos majú fyzický commissioning PASS. Nejde o dva fyzicky redundantné snímače. Každý lokálny kanál má XKC Safety V1 autoritu nad vlastným TOTAL STOP po 5 s potvrdení a 10 s WATER recovery; automatická akcia ešte čaká na fyzický bazénový test.
+3. XKC-Y25-NPN: jeden spoločný LOW WATER sensing element, fyzicky čítaný cez dve samostatné optočlenové cesty na Mega D30 a Uno A2; WATER, LOW_WATER, konflikt kanálov, otvorený vstup aj V5 prenos majú fyzický commissioning PASS. Nejde o dva fyzicky redundantné snímače. Každý lokálny kanál má XKC Safety V1 autoritu nad vlastným TOTAL STOP po 5 s potvrdení a 10 s WATER recovery. Fyzický test 2026-09-02 pri odpojenom UART potvrdil aktiváciu oboch TOTAL STOP relé, ich 10 s recovery aj reset recovery novým LOW WATER; stav je `PHYSICAL PASS / COMMISSIONED`.
 
 MEGA_SONAR a UNO_SONAR sú zatiaľ iba dvojica nezávislých monitorovacích senzorov. Nesmú sa používať na rozhodovanie o hladine, LOW WATER ani dopúšťaní, kým nebude fyzicky hotová finálna vyrovnávacia nádoba, referenčná geometria a kalibrácia.
 
@@ -1116,7 +1116,7 @@ Zatiaľ nie sú potvrdené a nesmú sa domýšľať:
 
 - piny budúcich, zatiaľ neschválených funkcií Mega/Uno; dnešné D30/D31/D32/D33 a Uno A0/A2/D9 sú pridelené podľa PINOUT;
 - budúca samostatná safety heartbeat vrstva; aktuálna Mega↔Uno UART vrstva je priame TTL 38400 Bd cez dva sériové 10 kΩ odpory, spoločnú GND a bez spoločného +5 V;
-- fyzický bazénový commissioning automatickej XKC Safety V1 reakcie D30→D32 a A2→A0; logika je implementovaná ako 5 s LOW WATER confirm a 10 s WATER recovery, polarita je `LOW = WATER`, `HIGH = LOW_WATER / DRY / otvorená cesta`;
+- reprodukcia jednorazového externého incidentu Uno D9, pri ktorom softvér hlásil agreement ON, ale pripojená vetva stiahla D9 približne na 0 V; presná H/L/napájacia/backfeed/spojová príčina zostáva nepotvrdená;
 - autonómna BASIC logika a podmienky BASIC_R3/R4;
 - prípadné budúce použitie skladovaného ESP-01S zostáva `NEURČENÉ`;
 - fyzický test druhej MicroSD vrstvy plánovanej pre Mega;
