@@ -24,8 +24,8 @@ Tento dokument je živý register auditných nálezov, otvorených technických 
 | STATUS | Počet |
 |---|---:|
 | OPEN | 12 |
-| FIXED_SOFTWARE | 6 |
-| DEFERRED | 5 |
+| FIXED_SOFTWARE | 7 |
+| DEFERRED | 4 |
 | WAITING_PHYSICAL_TEST | 1 |
 | PLANNED | 2 |
 | ACCEPTED_RESIDUAL_RISK | 2 |
@@ -40,10 +40,11 @@ Tento dokument je živý register auditných nálezov, otvorených technických 
 
 - **STATUS:** OPEN
 - **Závažnosť:** HIGH
-- **Problém:** Inicializácia a obsluha RTC/AHT10/I2C vrátane skenu zbernice prebieha bez potvrdeného Wire timeoutu a časť z nej je pred plnou inicializáciou lokálnej XKC/TOTAL STOP safety.
-- **Dopad:** Zaseknutá I2C zbernica môže zdržať alebo zastaviť safety inicializáciu či pravidelné vyhodnocovanie.
-- **Istota:** Absencia timeoutu a poradie v kóde sú isté; správanie konkrétneho hardvéru pri stuck-bus je **NEOVERENÉ**.
-- **Odporúčaný smer:** Samostatne schváliť I2C timeout/recovery a skoršiu safety inicializáciu; následne fyzicky otestovať stuck-bus.
+- **Problém:** Inicializácia a runtime obsluha RTC/AHT10/I2C vrátane skenu zbernice prebieha bez potvrdeného Wire timeoutu. Early boot inicializácia lokálnej D30 XKC/D32 TOTAL STOP vetvy už prebehne pred I2C, ale následné pravidelné safety vyhodnocovanie môže stále zablokovať stuck-bus.
+- **Dopad:** Zaseknutá I2C zbernica už nepredchádza definovaniu boot stavov D30/D32, ale môže zdržať alebo zastaviť ich neskoršie pravidelné vyhodnocovanie a reakciu.
+- **Istota:** Early boot exposure bola softvérovo odstránená v audite #9. Absencia Wire timeoutu je istá; správanie konkrétneho hardvéru pri stuck-bus zostáva **NEOVERENÉ**.
+- **Odporúčaný smer:** Samostatne schváliť I2C timeout/recovery a následne fyzicky otestovať stuck-bus bez miešania tejto zmeny s auditom #9.
+- **Stav po audite #9:** Early boot exposure addressed by #9; runtime I2C blocking risk remains. AUDIT #1 zostáva **OPEN**.
 
 ### 2. Remote T1/T2/T3 nemali rolovú validáciu na oboch stranách
 
@@ -115,14 +116,16 @@ Tento dokument je živý register auditných nálezov, otvorených technických 
 - **Odporúčaný smer:** Zachovať poradie HIGH latch pred OUTPUT a fyzicky overiť boot osciloskopom/logickým analyzátorom.
 - **Uzavretie 2026-09-02:** R9/D22 a R10/D23 dostanú HIGH latch pred pinMode(OUTPUT). Runtime regulácia sa nezmenila.
 
-### 9. Mega D32 TOTAL STOP sa inicializuje neskoro
+### 9. Mega D32 TOTAL STOP sa inicializovalo neskoro
 
-- **STATUS:** DEFERRED
+- **STATUS:** FIXED_SOFTWARE
 - **Závažnosť:** HIGH
-- **Problém:** D32 sa nastaví až po časti RTC/I2C/AHT a ďalšej inicializácie, takže predtým môže zostať Hi-Z.
-- **Dopad:** Pri pomalom alebo zablokovanom boote môže byť lokálna TOTAL STOP autorita pripravená neskoro.
-- **Istota:** Poradie kódu je isté; reálne správanie vstupu H/L modulu počas Hi-Z je **NEOVERENÉ**.
-- **Odporúčaný smer:** Riešiť spolu s bodom 1 ako osobitne schválenú zmenu poradia safety inicializácie.
+- **Pôvodný problém:** D32 sa nastavovalo až po časti RTC/I2C/AHT a ďalšej inicializácie, takže predtým mohlo zostať Hi-Z.
+- **Dopad:** Pri pomalom alebo zablokovanom boote mohla byť lokálna TOTAL STOP autorita pripravená neskoro.
+- **Softvérové uzavretie 2026-09-02:** **EARLY MEGA XKC/TOTAL STOP INITIALIZATION IMPLEMENTED.** Na úplnom začiatku `setup()` sa D30 nastaví `INPUT_PULLUP`, načíta sa počiatočný XKC stav a D32 dostane LOW latch pred `pinMode(OUTPUT)`, všetko ešte pred RTC/I2C/AHT. Neskoršie inicializačné funkcie D30/D32 znovu nenastavujú.
+- **Zachované správanie:** `megaXkcTrip` začína false; skorý `LOW_WATER` iba spustí existujúce 5 s kontinuálne potvrdenie. D32 zostáva LOW, kým dnešná runtime XKC logika nepotvrdí trip. Recovery zostáva 10 s.
+- **Istota:** Poradie a build sú staticky/softvérovo potvrdené. Reálny boot a XKC reakcia po presune ešte nie sú **PHYSICALLY_CONFIRMED**.
+- **Odporúčaný smer:** Vykonať neinvazívny fyzický boot/XKC commissioning; runtime I2C blocking rieši naďalej samostatný otvorený audit #1.
 
 ### 10. Agreement D31/D9 nie je hardvérový pulzný watchdog
 
@@ -390,7 +393,8 @@ Tento dokument je živý register auditných nálezov, otvorených technických 
 - [x] **PHYSICAL PASS 2026-09-02:** po WATER a 10 s súvislého recovery obe TOTAL STOP relé odpadli.
 - [x] **PHYSICALLY_CONFIRMED / ACCEPTED_RESIDUAL_RISK 2026-09-02:** reset jednej dosky zachová blokáciu cez druhú; súčasný reset Mega+Uno vytvorí približne 2–3 s permissive okno a potom sa TOTAL STOP znovu aktivuje.
 - [ ] Fyzicky overiť absenciu R9/R10 boot LOW pulzu po softvérovej HIGH-latch oprave.
-- [ ] Overiť I2C stuck-bus správanie, čas do safety inicializácie a loop latenciu.
+- [ ] **AUDIT #9 – SOFTWARE FIXED / PHYSICAL TEST PENDING:** pri reálnom boote overiť skoré definovanie D30/D32, D32 bez neželaného HIGH pulzu a zachovanie 5 s/10 s XKC reakcie.
+- [ ] **AUDIT #1:** overiť I2C stuck-bus runtime správanie a loop latenciu; early boot exposure D30/D32 už rieši audit #9.
 - [x] **SD ABSENT AT BOOT / RUN – PHYSICAL PASS 2026-09-02:** bez SD Uno nabootovalo, supervisor/link/XKC/agreement fungovali a opakované recovery pokusy nespôsobili pozorovaný reset, freeze ani link loss.
 - [ ] **AUDIT #19 zostáva OPEN:** zmerať SRAM/stack watermark pri približne 796 B voľnej SRAM a worst-case runtime/SD blocking pri chybovom alebo pomalom SD médiu.
 - [x] **PHYSICALLY_REPRODUCED_SYMPTOM 2026-09-02:** pri niekoľkominútovej trvalej UNO_TBOX chybe narástli CRC/INV/GAP, ale LINK a AGR zostali ON; po pripojení nastal recovery bez resetu.
@@ -441,4 +445,4 @@ Pri prípadnej recidíve skontrolovať a zmerať D9 kontakt ešte pred manipulá
 
 ### Zámerne neuzavreté týmto balíkom
 
-I2C timeout a skorá safety inicializácia, SystemMode gating R9/R10/manual/test, watchdog/freeze architektúra, Uno BLACK BOX XKC/A0/D9, ESP autentifikácia a secrets, Uno RAM/SD/timing merania a zostávajúce fyzické commissioning testy zostávajú podľa statusov a physical backlogu. Reset počas LOW WATER bol fyzicky charakterizovaný a je vedený ako ACCEPTED_RESIDUAL_RISK, nie FIXED.
+I2C timeout a runtime blocking, SystemMode gating R9/R10/manual/test, watchdog/freeze architektúra, Uno BLACK BOX XKC/A0/D9, ESP autentifikácia a secrets, Uno RAM/SD/timing merania a zostávajúce fyzické commissioning testy zostávajú podľa statusov a physical backlogu. Early boot inicializáciu D30/D32 uzatvára samostatne audit #9 ako FIXED_SOFTWARE; reset počas LOW WATER bol fyzicky charakterizovaný a je vedený ako ACCEPTED_RESIDUAL_RISK, nie FIXED.
