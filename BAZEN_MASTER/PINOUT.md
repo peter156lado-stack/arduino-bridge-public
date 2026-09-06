@@ -27,7 +27,7 @@ Ostatné jednotlivé Mega piny neboli v dodaných poznámkach výslovne označen
 | Pin | Smer | Funkcia | Poznámka |
 |---:|---|---|---|
 | D0/D1 | UART | USB Serial0 diagnostika | 115200 Bd |
-| D2 | I/O | 1-Wire MEGA_T1–T4 + MEGA_TBOX | päť pevných ROM; MEGA_TBOX monitor-only |
+| D2 | I/O | 1-Wire MEGA_T1–T4 + MEGA_TBOX | päť pevných ROM; všetky explicitne 12 bit po `sensors.begin()`; MEGA_TBOX monitor-only |
 | D14/D15 | UART | Serial3 Mega↔onboard ESP | 115200 baud |
 | D16/D17 | UART | Serial2 Mega↔Uno – priame TTL | Mega D16/TX2 → sériový 10 kΩ → Uno D7/RX; Uno D8/TX → sériový 10 kΩ → Mega D17/RX2; 38400 Bd, MASTER→REPLY, V6 38 B/22 B; spoločná GND, bez PC817, bez prepojenia +5 V medzi doskami; Uno SoftwareSerial neinvertovaný |
 | D20/D21 | I²C | DS3231, AHT10, LCD 20×4 | SDA/SCL; LCD používa autoritatívny `SystemMode`, pri lokálnom XKC tripe zobrazuje STOP a príčinu; 4-stranová rotácia 5 s, poruchová stránka pri aktívnom probléme 30 s |
@@ -151,7 +151,7 @@ Lokálna softvérová migrácia je implementovaná a fyzicky potvrdená: meranie
 | Pin | Smer | Funkcia | Poznámka |
 |---:|---|---|---|
 | D0/D1 | UART | USB hardvérový Serial diagnostika | 115200 Bd |
-| D2 | I/O | UNO_T1/UNO_T2/UNO_T3/UNO_TBOX | štyri pevné ROM fyzicky potvrdené `OK`; UNO_T1 validita `>-10 && <60 °C`, UNO_T2/T3 `>-10 && <100 °C`, TBOX zostáva v DS18B20 technickom rozsahu; asynchrónne každých 5 300 ms; OneWire recovery 5 000 ms |
+| D2 | I/O | UNO_T1/UNO_T2/UNO_T3/UNO_TBOX | štyri pevné ROM fyzicky potvrdené `OK`; všetky explicitne 12 bit pri boote aj recovery; UNO_T1 validita `>-10 && <60 °C`, UNO_T2/T3 `>-10 && <100 °C`, TBOX zostáva v DS18B20 technickom rozsahu; asynchrónne každých 5 300 ms; OneWire recovery 5 000 ms |
 | D3 | OUT | Uno HY-SRF05 TRIG | neblokujúci stavový automat |
 | D4 | IN | Uno HY-SRF05 ECHO | bez pulseIn |
 | D5 | — | voľné | bývalá ESP-01S linka fyzicky odstránená |

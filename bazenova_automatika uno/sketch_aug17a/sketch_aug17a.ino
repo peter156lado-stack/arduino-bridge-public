@@ -29,7 +29,7 @@ const unsigned long XKC_WATER_RECOVERY_MS = 10000UL;
 
 const unsigned long TEMPERATURE_INTERVAL_MS = 5300UL;
 // Po vypadku napajania sa DS18B20 vrati na 12 bit (max. 750 ms).
-// Tento cas umozni obnovu este pred opatovnym nastavenim na 10 bit.
+// Tento cas pokryva 12-bit konverziu aj po OneWire reinicializacii.
 const unsigned long TEMPERATURE_CONVERSION_MS = 800UL;
 const unsigned long ONE_WIRE_REINIT_INTERVAL_MS = 5000UL;
 const unsigned long SONAR_INTERVAL_US = 250000UL;
@@ -823,10 +823,10 @@ void reinicializujOneWireAkTreba(unsigned long teraz) {
   // begin() znovu prehlada zbernicu. Fixne ROM adresy zostavaju nezmenene.
   // Operacia je kratka a vykona sa len raz za 5 sekund pri chybe.
   sensors.begin();
-  sensors.setResolution(T1_ADDRESS, 10);
-  sensors.setResolution(T2_ADDRESS, 10);
-  sensors.setResolution(T3_ADDRESS, 10);
-  sensors.setResolution(TBOX_ADDRESS, 10);
+  sensors.setResolution(T1_ADDRESS, 12);
+  sensors.setResolution(T2_ADDRESS, 12);
+  sensors.setResolution(T3_ADDRESS, 12);
+  sensors.setResolution(TBOX_ADDRESS, 12);
   sensors.setWaitForConversion(false);
   casPoslednejReinicializacieOneWire = teraz;
 }
@@ -1389,10 +1389,10 @@ void setup() {
   digitalWrite(SONAR_TRIG_PIN, LOW);
 
   sensors.begin();
-  sensors.setResolution(T1_ADDRESS, 10);
-  sensors.setResolution(T2_ADDRESS, 10);
-  sensors.setResolution(T3_ADDRESS, 10);
-  sensors.setResolution(TBOX_ADDRESS, 10);
+  sensors.setResolution(T1_ADDRESS, 12);
+  sensors.setResolution(T2_ADDRESS, 12);
+  sensors.setResolution(T3_ADDRESS, 12);
+  sensors.setResolution(TBOX_ADDRESS, 12);
   sensors.setWaitForConversion(false);
 
   inicializujSDLogger();

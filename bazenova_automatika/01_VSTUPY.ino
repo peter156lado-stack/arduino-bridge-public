@@ -760,6 +760,11 @@ void inicializaciaVstupov() {
   megaSonarPoslednyStartUs = micros() - MEGA_SONAR_INTERVAL_US;
 
   sensors.begin();
+  sensors.setResolution(T1, 12);
+  sensors.setResolution(T2, 12);
+  sensors.setResolution(T3, 12);
+  sensors.setResolution(T4, 12);
+  sensors.setResolution(MEGA_TBOX, 12);
   sensors.setWaitForConversion(false);
 
   vypisAdresyDS18B20();
