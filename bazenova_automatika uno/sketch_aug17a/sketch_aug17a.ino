@@ -54,11 +54,12 @@ const unsigned long UNO_SMART_STABILIZACIA_MS = 180000UL;
 const unsigned long CAS_SYNC_INTERVAL_MS = 60UL * 60UL * 1000UL;
 const byte LINK_MAGIC_1 = 0xBA;
 const byte LINK_MAGIC_2 = 0x5E;
-const byte LINK_PROTOCOL_VERSION = 5;
+const byte LINK_PROTOCOL_VERSION = 6;
 const byte LINK_TYPE_UNO_TO_MEGA = 0x01;
 const byte LINK_TYPE_MEGA_TO_UNO = 0x02;
 const byte UNO_FRAME_SIZE = 22;
-const byte MEGA_FRAME_SIZE = 24;
+const byte MEGA_FRAME_SIZE = 38;
+const byte MEGA_PROBLEM_MAX_CODE = 25;
 
 #if CROSS_RESET_ENABLED
 
@@ -418,11 +419,33 @@ struct MegaVysledok {
   byte rtcRok;
   byte rtcMesiac;
   byte rtcDen;
+  int t1Raw;
+  int t2Raw;
+  int t3Raw;
+  int t4Raw;
+  int tboxRaw;
+  int target;
+  bool t1RawOk;
+  bool t2RawOk;
+  bool t3RawOk;
+  bool t4RawOk;
+  bool tboxRawOk;
+  bool filtraciaOn;
+  bool solarOn;
+  bool xkcLowWater;
+  bool totalStop;
+  bool megaAgreement;
+  byte systemMode;
+  byte problemCode;
 };
 
 MegaVysledok megaVysledok = {
   0.0f, 0.0f, false, false, false,
-  0, 0, 0, 2, 0, 0UL, 0, 0, 0
+  0, 0, 0, 2, 0, 0UL, 0, 0, 0,
+  0, 0, 0, 0, 0, 0,
+  false, false, false, false, false,
+  false, false, false, false, false,
+  0, 0
 };
 
 byte megaLinkRxBuffer[MEGA_FRAME_SIZE];
@@ -564,16 +587,17 @@ void prijmiMegaRamec() {
 
     return;
   }
-  MegaVysledok novy;
+  MegaVysledok novy = {};
   const byte validity = megaLinkRxBuffer[7];
-  if ((validity & 0xF8) != 0) {
-    megaFrameInvalid++;
-    return;
-  }
   novy.sekvencia = citajU16(megaLinkRxBuffer, 5);
   novy.poolOk = validity & 0x01;
   novy.t2Ok = validity & 0x02;
   novy.rtcOk = validity & 0x04;
+  novy.t1RawOk = validity & 0x08;
+  novy.t2RawOk = validity & 0x10;
+  novy.t3RawOk = validity & 0x20;
+  novy.t4RawOk = validity & 0x40;
+  novy.tboxRawOk = validity & 0x80;
   novy.poolZdroj = megaLinkRxBuffer[8];
   novy.t2Zdroj = megaLinkRxBuffer[9];
   novy.diagnostika = megaLinkRxBuffer[10];
@@ -589,8 +613,25 @@ void prijmiMegaRamec() {
   novy.rtcRok = megaLinkRxBuffer[20];
   novy.rtcMesiac = megaLinkRxBuffer[21];
   novy.rtcDen = megaLinkRxBuffer[22];
+  novy.t1Raw = citajI16(megaLinkRxBuffer, 23);
+  novy.t2Raw = citajI16(megaLinkRxBuffer, 25);
+  novy.t3Raw = citajI16(megaLinkRxBuffer, 27);
+  novy.t4Raw = citajI16(megaLinkRxBuffer, 29);
+  novy.tboxRaw = citajI16(megaLinkRxBuffer, 31);
+  novy.target = citajI16(megaLinkRxBuffer, 33);
+  const byte outputFlags = megaLinkRxBuffer[35];
+  const byte modeAProblem = megaLinkRxBuffer[36];
+  novy.filtraciaOn = outputFlags & 0x01;
+  novy.solarOn = outputFlags & 0x02;
+  novy.xkcLowWater = outputFlags & 0x04;
+  novy.totalStop = outputFlags & 0x08;
+  novy.megaAgreement = outputFlags & 0x10;
+  novy.systemMode = modeAProblem & 0x03;
+  novy.problemCode = (modeAProblem >> 2) & 0x1F;
   if (novy.rtcSekundyDna >= 86400UL ||
-      (novy.rtcOk && !datumJePlatny(novy.rtcRok, novy.rtcMesiac, novy.rtcDen))) {
+      (novy.rtcOk && !datumJePlatny(novy.rtcRok, novy.rtcMesiac, novy.rtcDen)) ||
+      (outputFlags & 0xE0) != 0 || (modeAProblem & 0x80) != 0 ||
+      novy.systemMode > 3 || novy.problemCode > MEGA_PROBLEM_MAX_CODE) {
     megaFrameInvalid++;
     return;
   }
@@ -742,7 +783,7 @@ void aktualizujUnoAgreementStabilizaciu(bool podmienkyOk, unsigned long teraz) {
 void aktualizujMegaLinkTest() {
   const unsigned long teraz = millis();
   byte prijate = 0;
-  while (megaLinkSerial.available() > 0 && prijate < 24) {
+  while (megaLinkSerial.available() > 0 && prijate < MEGA_FRAME_SIZE) {
     prijmiMegaByte((byte)megaLinkSerial.read());
     prijate++;
   }
@@ -960,8 +1001,25 @@ void vypisCasCSV(File &subor) {
   vypisDvojciferneCSV(subor, sekundy % 60UL);
 }
 
+void vypisStotinyCSV(File &subor, int hodnota, bool platna) {
+  if (!platna) {
+    subor.print(F("NA"));
+    return;
+  }
+  long cislo = hodnota;
+  if (cislo < 0) {
+    subor.print('-');
+    cislo = -cislo;
+  }
+  subor.print(cislo / 100L);
+  subor.print('.');
+  const byte desatinnaCast = (byte)(cislo % 100L);
+  if (desatinnaCast < 10) subor.print('0');
+  subor.print(desatinnaCast);
+}
+
 void zapisHlavickuPrevadzkovehoLogu(File &subor) {
-  subor.println(F("time,millis,UNO_T1_C,T1_OK,UNO_T2_C,T2_OK,UNO_T3_C,T3_OK,UNO_TBOX_C,TBOX_OK,SONAR_CM,SONAR_STATE,UNO_STATE,MEGA_LINK,MEGA_RESULT,MEGA_STATE,POOL_C,POOL_SOURCE,T2_EFFECTIVE_C,T2_SOURCE,DIAGNOSTIC_FLAGS"));
+  subor.println(F("time,millis,UNO_T1_C,T1_OK,UNO_T2_C,T2_OK,UNO_T3_C,T3_OK,UNO_TBOX_C,TBOX_OK,SONAR_CM,SONAR_STATE,UNO_STATE,MEGA_LINK,MEGA_RESULT,MEGA_STATE,POOL_C,POOL_SOURCE,T2_EFFECTIVE_C,T2_SOURCE,DIAGNOSTIC_FLAGS,MEGA_DATA_VALID,MEGA_DATA_AGE_MS,MEGA_T1_C,MEGA_T1_OK,MEGA_T2_C,MEGA_T2_OK,MEGA_T3_C,MEGA_T3_OK,MEGA_T4_C,MEGA_T4_OK,MEGA_TBOX_C,MEGA_TBOX_OK,MEGA_TARGET_C,MEGA_FIL_ON,MEGA_SOL_ON,MEGA_SYSTEM_MODE,MEGA_XKC_LOW_WATER,MEGA_TOTAL_STOP,MEGA_AGREEMENT,MEGA_PROBLEM_CODE"));
 }
 
 void zapisHlavickuEventLogu(File &subor) {
@@ -1072,7 +1130,48 @@ void zapisSDLogAkTreba() {
   subor.print(',');
   subor.print(MEGA_RESULT_VALID ? megaVysledok.t2Zdroj : 255);
   subor.print(',');
-  subor.println(MEGA_RESULT_VALID ? megaVysledok.diagnostika : 0);
+  subor.print(MEGA_RESULT_VALID ? megaVysledok.diagnostika : 0);
+  subor.print(',');
+  subor.print(MEGA_RESULT_VALID ? 1 : 0);
+  subor.print(',');
+  if (megaRemotePoslednyRamecMs == 0) subor.print(F("NA"));
+  else subor.print(teraz - megaRemotePoslednyRamecMs);
+  subor.print(',');
+  vypisStotinyCSV(subor, megaVysledok.t1Raw, MEGA_RESULT_VALID && megaVysledok.t1RawOk);
+  subor.print(',');
+  subor.print(MEGA_RESULT_VALID && megaVysledok.t1RawOk ? 1 : 0);
+  subor.print(',');
+  vypisStotinyCSV(subor, megaVysledok.t2Raw, MEGA_RESULT_VALID && megaVysledok.t2RawOk);
+  subor.print(',');
+  subor.print(MEGA_RESULT_VALID && megaVysledok.t2RawOk ? 1 : 0);
+  subor.print(',');
+  vypisStotinyCSV(subor, megaVysledok.t3Raw, MEGA_RESULT_VALID && megaVysledok.t3RawOk);
+  subor.print(',');
+  subor.print(MEGA_RESULT_VALID && megaVysledok.t3RawOk ? 1 : 0);
+  subor.print(',');
+  vypisStotinyCSV(subor, megaVysledok.t4Raw, MEGA_RESULT_VALID && megaVysledok.t4RawOk);
+  subor.print(',');
+  subor.print(MEGA_RESULT_VALID && megaVysledok.t4RawOk ? 1 : 0);
+  subor.print(',');
+  vypisStotinyCSV(subor, megaVysledok.tboxRaw, MEGA_RESULT_VALID && megaVysledok.tboxRawOk);
+  subor.print(',');
+  subor.print(MEGA_RESULT_VALID && megaVysledok.tboxRawOk ? 1 : 0);
+  subor.print(',');
+  vypisStotinyCSV(subor, megaVysledok.target, MEGA_RESULT_VALID);
+  subor.print(',');
+  subor.print(MEGA_RESULT_VALID && megaVysledok.filtraciaOn ? 1 : 0);
+  subor.print(',');
+  subor.print(MEGA_RESULT_VALID && megaVysledok.solarOn ? 1 : 0);
+  subor.print(',');
+  subor.print(MEGA_RESULT_VALID ? megaVysledok.systemMode : 255);
+  subor.print(',');
+  subor.print(MEGA_RESULT_VALID && megaVysledok.xkcLowWater ? 1 : 0);
+  subor.print(',');
+  subor.print(MEGA_RESULT_VALID && megaVysledok.totalStop ? 1 : 0);
+  subor.print(',');
+  subor.print(MEGA_RESULT_VALID && megaVysledok.megaAgreement ? 1 : 0);
+  subor.print(',');
+  subor.println(MEGA_RESULT_VALID ? megaVysledok.problemCode : 255);
 
   if (subor.getWriteError()) {
     subor.close();
@@ -1291,7 +1390,7 @@ void setup() {
   casPoslednejReinicializacieOneWire = millis();
   sonarPoslednyStartUs = micros() - SONAR_INTERVAL_US;
 
-  Serial.println(F("UNO START V5"));
+  Serial.println(F("UNO START V6"));
   Serial.println(F("UNO DS18B20 MAPA:"));
   Serial.println(F("UNO_T1 = BAZEN"));
   Serial.println(F("UNO_T2 = SOLAR VYSTUP"));
