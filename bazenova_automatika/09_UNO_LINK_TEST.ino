@@ -10,11 +10,11 @@ const unsigned long UNO_REMOTE_TIMEOUT_MS = 10000UL;
 const unsigned long MEGA_SMART_STABILIZACIA_MS = 180000UL;
 const byte LINK_MAGIC_1 = 0xBA;
 const byte LINK_MAGIC_2 = 0x5E;
-const byte LINK_PROTOCOL_VERSION = 5;
+const byte LINK_PROTOCOL_VERSION = 6;
 const byte LINK_TYPE_UNO_TO_MEGA = 0x01;
 const byte LINK_TYPE_MEGA_TO_UNO = 0x02;
 const byte UNO_FRAME_SIZE = 22;
-const byte MEGA_FRAME_SIZE = 24;
+const byte MEGA_FRAME_SIZE = 38;
 
 struct UnoRemoteSnapshot {
   float t1, t2, t3, tbox, sonar;
@@ -205,6 +205,11 @@ void pripravMegaRamec() {
   byte h, m, s, d, mo, y;
   const bool rtcOk = rtcCasJePlatny() && nacitajRTC(h, m, s, d, mo, y);
   if (rtcOk) validity |= 0x04;
+  if (T1_OK) validity |= 0x08;
+  if (T2_OK) validity |= 0x10;
+  if (T3_OK) validity |= 0x20;
+  if (T4_OK) validity |= 0x40;
+  if (MEGA_TBOX_OK) validity |= 0x80;
   unoLinkTxBuffer[7] = validity;
   unoLinkTxBuffer[8] = (byte)zdrojTeplotyBazena;
   unoLinkTxBuffer[9] = (byte)zdrojT2;
@@ -225,7 +230,23 @@ void pripravMegaRamec() {
   unoLinkTxBuffer[20] = rtcOk ? y : 0;
   unoLinkTxBuffer[21] = rtcOk ? mo : 0;
   unoLinkTxBuffer[22] = rtcOk ? d : 0;
-  unoLinkTxBuffer[23] = linkCrc8(unoLinkTxBuffer, MEGA_FRAME_SIZE - 1);
+  zapisI16(unoLinkTxBuffer, 23, T1_OK ? teplotaNaStotiny(t1) : 0);
+  zapisI16(unoLinkTxBuffer, 25, T2_OK ? teplotaNaStotiny(t2) : 0);
+  zapisI16(unoLinkTxBuffer, 27, T3_OK ? teplotaNaStotiny(t3) : 0);
+  zapisI16(unoLinkTxBuffer, 29, T4_OK ? teplotaNaStotiny(t4) : 0);
+  zapisI16(unoLinkTxBuffer, 31, MEGA_TBOX_OK ? teplotaNaStotiny(megaTbox) : 0);
+  zapisI16(unoLinkTxBuffer, 33, teplotaNaStotiny(MAX_BAZEN));
+  byte outputFlags = 0;
+  if (filtraciaZapnuta) outputFlags |= 0x01;
+  if (digitalRead(R10) == LOW) outputFlags |= 0x02;
+  if (megaXkcLowWater) outputFlags |= 0x04;
+  if (megaTotalStopRequest()) outputFlags |= 0x08;
+  if (megaAgreementOn) outputFlags |= 0x10;
+  unoLinkTxBuffer[35] = outputFlags;
+  byte modeAProblem = ((byte)systemMode & 0x03);
+  modeAProblem |= (byte)((megaProblemPodlaPoradia(0) & 0x1F) << 2);
+  unoLinkTxBuffer[36] = modeAProblem;
+  unoLinkTxBuffer[37] = linkCrc8(unoLinkTxBuffer, MEGA_FRAME_SIZE - 1);
   unoLinkTxPozicia = 0;
 }
 
@@ -261,7 +282,7 @@ void aktualizujKrizovuDiagnostiku() {
 void inicializaciaUnoLinkTest() {
   Serial2.begin(UNO_LINK_BAUD);
   unoLinkPosledneFrameTxMs = millis() - UNO_LINK_FRAME_INTERVAL_MS;
-  Serial.println("UNO LINK: Serial2 D16/D17 @ 38400, BINARY V5 CRC8");
+  Serial.println("UNO LINK: Serial2 D16/D17 @ 38400, BINARY V6 CRC8");
 }
 
 void nastavMegaAgreement(bool povolit) {
