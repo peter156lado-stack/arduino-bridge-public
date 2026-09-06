@@ -157,6 +157,9 @@ void aktualizujNapajanieFiltracie(bool povolitStartResetu) {
   const unsigned long teraz = millis();
   const bool poziadavka = filtraciaJePoziadovana();
 
+  // Zmenovy vypis zachyti aj kratky TEST a manualnu autoritu bez loop spamu.
+  aktualizujDiagnostikuZdrojaFiltracie();
+
   if (filtraciaNapajanieStav == FIL_RESET_OFF) {
 
     if (!poziadavka) {

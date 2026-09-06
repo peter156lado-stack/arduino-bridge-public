@@ -45,11 +45,16 @@ const unsigned long FILTRACIA_MAX_SUVISLE_ON = 6UL * 60UL * 60UL * 1000UL;
 // Kratke odpojenie napajania obnovi interny priblizne 6 h casovac Bestway.
 const unsigned long FILTRACIA_RESET_OFF_CAS = 2000UL;
 
-// RTC harmonogram filtracie v hodinach (format 24 h).
-const byte FILTRACIA_RTC_ON_1_OD = 0;
-const byte FILTRACIA_RTC_ON_1_DO = 6;
-const byte FILTRACIA_RTC_ON_2_OD = 12;
-const byte FILTRACIA_RTC_ON_2_DO = 18;
+// Pevne denne RTC jadro filtracie v hodinach (format 24 h).
+const byte FILTRACIA_RTC_FIXED_OD = 10;
+const byte FILTRACIA_RTC_FIXED_DO = 16;
+
+// Automaticky denny cas: 6 h pevne RTC jadro + najviac 4 h SOLAR EXTRA.
+// Manual FIL 6H a TEST R9 do tychto limitov nevstupuju.
+const unsigned long FILTRACIA_AUTO_DENNY_LIMIT =
+    10UL * 60UL * 60UL * 1000UL;
+const unsigned long FILTRACIA_SOLAR_EXTRA_DENNY_LIMIT =
+    4UL * 60UL * 60UL * 1000UL;
 
 // Manualne tlacidlo filtracie: D48, aktivacia na 6 hodin.
 const int TLACIDLO_FILTRACIA_6H_PIN = 48;
