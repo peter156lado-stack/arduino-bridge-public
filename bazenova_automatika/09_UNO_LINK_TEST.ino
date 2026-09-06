@@ -341,7 +341,7 @@ void vypisMegaSmartStable() {
 void aktualizujUnoLink() {
   const unsigned long teraz = millis();
   byte prijate = 0;
-  while (Serial2.available() > 0 && prijate < 24) {
+  while (Serial2.available() > 0 && prijate < UNO_FRAME_SIZE) {
     prijmiUnoByte((byte)Serial2.read());
     prijate++;
   }

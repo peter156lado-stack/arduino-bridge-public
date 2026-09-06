@@ -8,7 +8,7 @@
 const unsigned long WIFI_BAUD = 115200UL;
 const unsigned long WIFI_DATA_INTERVAL = 1000UL;
 const size_t WIFI_RX_BUFFER_VELKOST = 48;
-// Web telemetry additions only; the Mega<->Uno V5 frames and safety behaviour stay unchanged.
+// Web telemetry additions only; Mega<->Uno protocol and safety authority are handled separately.
 const size_t WIFI_TX_BUFFER_VELKOST = 512;
 
 char wifiRxBuffer[WIFI_RX_BUFFER_VELKOST];

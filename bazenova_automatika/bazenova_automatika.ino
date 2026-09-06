@@ -95,7 +95,7 @@ void setup() {
 
   Serial.begin(115200);
 
-  // Watchdog/povolovacia vetva D31 je zakazana skor, nez sa spusti V5 linka.
+  // Watchdog/povolovacia vetva D31 je zakazana skor, nez sa spusti V6 linka.
   digitalWrite(MEGA_AGREEMENT_WATCHDOG_PIN, LOW);
   pinMode(MEGA_AGREEMENT_WATCHDOG_PIN, OUTPUT);
   digitalWrite(MEGA_AGREEMENT_WATCHDOG_PIN, LOW);

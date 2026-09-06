@@ -29,7 +29,7 @@ Ostatné jednotlivé Mega piny neboli v dodaných poznámkach výslovne označen
 | D0/D1 | UART | USB Serial0 diagnostika | 115200 Bd |
 | D2 | I/O | 1-Wire MEGA_T1–T4 + MEGA_TBOX | päť pevných ROM; MEGA_TBOX monitor-only |
 | D14/D15 | UART | Serial3 Mega↔onboard ESP | 115200 baud |
-| D16/D17 | UART | Serial2 Mega↔Uno – priame TTL | Mega D16/TX2 → sériový 10 kΩ → Uno D7/RX; Uno D8/TX → sériový 10 kΩ → Mega D17/RX2; 38400 Bd, MASTER→REPLY, V5 24 B/22 B; spoločná GND, bez PC817, bez prepojenia +5 V medzi doskami; Uno SoftwareSerial neinvertovaný |
+| D16/D17 | UART | Serial2 Mega↔Uno – priame TTL | Mega D16/TX2 → sériový 10 kΩ → Uno D7/RX; Uno D8/TX → sériový 10 kΩ → Mega D17/RX2; 38400 Bd, MASTER→REPLY, V6 38 B/22 B; spoločná GND, bez PC817, bez prepojenia +5 V medzi doskami; Uno SoftwareSerial neinvertovaný |
 | D20/D21 | I²C | DS3231, AHT10, LCD 20×4 | SDA/SCL; LCD používa autoritatívny `SystemMode`, pri lokálnom XKC tripe zobrazuje STOP a príčinu; 4-stranová rotácia 5 s, poruchová stránka pri aktívnom probléme 30 s |
 | D22 | OUT | MEGA_R9 | filtrácia, aktívne LOW; bezpečný HIGH/OFF latch sa nastaví pred `pinMode(OUTPUT)` |
 | D23 | OUT | MEGA_R10 | solár/chrlič, aktívne LOW; bezpečný HIGH/OFF latch sa nastaví pred `pinMode(OUTPUT)` |
@@ -127,8 +127,8 @@ Napájanie Una je fyzicky vedené zo samostatného LM2596 nastaveného na 7,5 V.
 | D2 | 1-Wire UNO_T1/UNO_T2/UNO_T3/UNO_TBOX | všetky štyri pevné ROM aj merania fyzicky potvrdené `OK`; jeden spoločný fyzicky osadený pull-up 4,7 kΩ; napätie hornej strany pull-upu NEOVERENÉ |
 | D3 | HY-SRF05 TRIG | testované |
 | D4 | HY-SRF05 ECHO | testované |
-| D7 | Mega D16/TX2 → sériový 10 kΩ → Uno RX | priame TTL, neinvertovaný SoftwareSerial, 38400 Bd; V5 MASTER rámec 24 B; spoločná GND; bez PC817 a bez spoločného +5 V |
-| D8 | Uno TX → sériový 10 kΩ → Mega D17/RX2 | priame TTL, neinvertovaný SoftwareSerial, 38400 Bd; V5 REPLY rámec 22 B s UNO_T3 a XKC flagom; spoločná GND; bez PC817 a bez spoločného +5 V |
+| D7 | Mega D16/TX2 → sériový 10 kΩ → Uno RX | priame TTL, neinvertovaný SoftwareSerial, 38400 Bd; V6 MASTER rámec 38 B; spoločná GND; bez PC817 a bez spoločného +5 V |
+| D8 | Uno TX → sériový 10 kΩ → Mega D17/RX2 | priame TTL, neinvertovaný SoftwareSerial, 38400 Bd; V6 REPLY rámec 22 B s nezmeneným V5 rozložením; spoločná GND; bez PC817 a bez spoločného +5 V |
 | D9 | H/L relé modul #1 | FYZICKY OVERENÉ RIADENIE; 5 V, spoločná systémová GND/DC−; `HIGH → aktívne/COM–NO`, `LOW → neaktívne/COM–NC`; strata napájania → COM–NC |
 | A0 | UNO_TOTAL_STOP | FYZICKY PRIPOJENÉ A COMMISSIONING TESTOM OVERENÉ; `HIGH → relé zopnuté/COM–NO`, `LOW → relé uvoľnené/COM–NC`; napájanie modulu z Uno power domain |
 | A2 | UNO_XKC | FYZICKY OVERENÉ / COMMISSIONING PASS cez druhý samostatný kanál HY-M154/PC817; `INPUT_PULLUP`; `LOW = WATER`, `HIGH = LOW_WATER / DRY / otvorená signálová cesta`; po 5 s súvislého lokálneho HIGH vyvolá Uno XKC trip bez Mega/UART; otvorená cesta ide bezpečným smerom na LOW_WATER |
@@ -156,8 +156,8 @@ Lokálna softvérová migrácia je implementovaná a fyzicky potvrdená: meranie
 | D4 | IN | Uno HY-SRF05 ECHO | bez pulseIn |
 | D5 | — | voľné | bývalá ESP-01S linka fyzicky odstránená |
 | D6 | — | voľné | bývalá ESP-01S linka fyzicky odstránená |
-| D7 | IN | Uno RX z Mega D16/TX2 cez sériový 10 kΩ | jediná SoftwareSerial linka, neinvertovaná logika, 38400 Bd; binárny výsledkový rámec V5 24 B |
-| D8 | OUT | Uno TX cez sériový 10 kΩ do Mega D17/RX2 | neinvertovaný TTL UART 38400 Bd; binárny lokálny rámec V5 22 B s UNO_T3 a XKC flagom |
+| D7 | IN | Uno RX z Mega D16/TX2 cez sériový 10 kΩ | jediná SoftwareSerial linka, neinvertovaná logika, 38400 Bd; binárny výsledkový rámec V6 38 B |
+| D8 | OUT | Uno TX cez sériový 10 kΩ do Mega D17/RX2 | neinvertovaný TTL UART 38400 Bd; binárny lokálny rámec V6 22 B, rozloženie oproti V5 nezmenené |
 | D9 | OUT | UNO_AGREEMENT – H/L relé modul #1 | boot/reset LOW; platná linka + čerstvé dáta + nekritický stav Mega počas 180 s → HIGH; link/stale timeout 10 s alebo kritický stav → okamžite LOW a timer od nuly; Mega DEGRADED samo neblokuje; nie finálna BASIC/safety logika |
 | D10 | OUT | Uno MicroSD CS | SPI, `UNO_LOG.CSV` každých 60 s |
 | D11 | OUT | Uno MicroSD MOSI | SPI |

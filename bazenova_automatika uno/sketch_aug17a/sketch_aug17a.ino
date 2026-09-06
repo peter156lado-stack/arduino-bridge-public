@@ -691,7 +691,7 @@ void pripravUnoTelemetriu() {
   if (sonarStav == SONAR_OK) sonarDesatiny = (unsigned int)(sonarVzdialenostCm * 10.0f + 0.5f);
   zapisU16(megaLinkTxBuffer, 16, sonarDesatiny);
   zapisI16(megaLinkTxBuffer, 18, T3_OK ? teplotaNaStotiny(teplotaT3) : 0);
-  // V5 flagy: bit 0 = UNO agreement, bit 1 = lokalny XKC LOW WATER.
+  // V6 flagy: bit 0 = UNO agreement, bit 1 = lokalny XKC LOW WATER.
   megaLinkTxBuffer[20] = (unoAgreementOn ? 0x01 : 0x00) |
                          (unoXkcLowWater ? 0x02 : 0x00);
   megaLinkTxBuffer[21] = linkCrc8(megaLinkTxBuffer, UNO_FRAME_SIZE - 1);
@@ -966,7 +966,9 @@ void vypniSDLogger(const __FlashStringHelper *chyba) {
 void vytvorDennyNazov(char *nazov, bool eventSubor) {
   byte rok, mesiac, den;
   if (!aktualnySoftDatum(rok, mesiac, den)) {
-    strcpy_P(nazov, eventSubor ? PSTR("UNDTEVT.CSV") : PSTR("UNDTLOG.CSV"));
+    // V6 prevadzkovy log ma vlastny nazov, aby sa 41-stlpcove riadky
+    // nepridali za starsiu 21-stlpcovu hlavicku z rovnakeho dna.
+    strcpy_P(nazov, eventSubor ? PSTR("UNDTEVT.CSV") : PSTR("UNDTLGV6.CSV"));
     return;
   }
   nazov[0] = eventSubor ? 'E' : 'L';
@@ -976,11 +978,21 @@ void vytvorDennyNazov(char *nazov, bool eventSubor) {
   nazov[4] = '0' + mesiac % 10U;
   nazov[5] = '0' + den / 10U;
   nazov[6] = '0' + den % 10U;
-  nazov[7] = '.';
-  nazov[8] = 'C';
-  nazov[9] = 'S';
-  nazov[10] = 'V';
-  nazov[11] = '\0';
+  if (eventSubor) {
+    nazov[7] = '.';
+    nazov[8] = 'C';
+    nazov[9] = 'S';
+    nazov[10] = 'V';
+    nazov[11] = '\0';
+  }
+  else {
+    nazov[7] = '6';
+    nazov[8] = '.';
+    nazov[9] = 'C';
+    nazov[10] = 'S';
+    nazov[11] = 'V';
+    nazov[12] = '\0';
+  }
 }
 
 void vypisDvojciferneCSV(File &subor, byte hodnota) {
@@ -1365,7 +1377,7 @@ void setup() {
   pinMode(UNO_TOTAL_STOP_PIN, OUTPUT);
   aktualizujUnoTotalStopVystup();
 
-  // Fail-safe boot: agreement je zakazane skor, nez sa spusti V5 linka.
+  // Fail-safe boot: agreement je zakazane skor, nez sa spusti V6 linka.
   digitalWrite(UNO_HL_RELAY_1_PIN, LOW);
   pinMode(UNO_HL_RELAY_1_PIN, OUTPUT);
   digitalWrite(UNO_HL_RELAY_1_PIN, LOW);
