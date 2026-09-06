@@ -934,6 +934,18 @@ Dôvod oddelenia: filtrácia/chlorovač má zostať nezávislá hydraulická ces
 
 Uvedený príkon a prietok sú údaje z reálnej prevádzky zostavy, nie garantované výrobné parametre.
 
+#### SMART časovanie filtrácie podľa tepelnej stratégie – SOFTWARE IMPLEMENTED / PHYSICAL TEST PENDING
+
+Pri platnom RTC má automatická filtrácia jedno pevné denné jadro `10:00–16:00`. Mimo tohto okna môže aktívny `solarZapnuty` vytvoriť požiadavku `SOLAR_EXTRA`, najviac však približne 4 h za kalendárny deň a iba dovtedy, kým celkový zaznamenaný automatický čas nedosiahne približne 10 h. Pevné RTC jadro zostáva požadované aj po dosiahnutí limitu; samostatný 4 h strop `SOLAR_EXTRA` bráni tomu, aby ranný solár spotreboval celý denný limit pred pevným jadrom.
+
+Mega neblokujúco počíta iba dobu, počas ktorej je aktívna automatická požiadavka `RTC_FIXED` alebo `SOLAR_EXTRA`. Používa unsigned `millis()` subtraction, takže meranie zostáva korektné cez rollover. Pri prvom platnom dátume po boote začne od nuly bez spätného dopočítania; pri zmene RTC dátumu vynuluje denný celkový aj `SOLAR_EXTRA` counter. Counter nie je perzistentný: reset Mega ho začne znovu od nuly a v taký deň môže skutočný automatický čas prekročiť nominálny limit. Táto limitácia je pre prvú verziu akceptovaná.
+
+`FIL MANUAL 6H` a `TEST R9` zostávajú samostatné servisné autority, majú pôvodnú prioritu a do 10 h automatického limitu sa nepočítajú. Ak sa časovo prekrývajú s platnou automatickou požiadavkou, automatický counter naďalej eviduje existujúci automatický dopyt; samotný manual/test čas navyše nepripočítava.
+
+Ak RTC nie je autoritatívne platný, nevytvára sa fiktívny kalendárny deň ani nový reset countera. Zachováva sa pôvodný `FILTRACIA_CAS_ON/OFF` millis fallback `6 h ON / 6 h OFF`; `SOLAR_EXTRA` sa bez platného dátumu nepoužíva a 10 h limit za kalendárny deň nemožno garantovať. Diagnostika uvádza `FIL DAILY: RTC INVALID / LIMIT NOT GUARANTEED`.
+
+Solárne čerpadlo a filtrácia/chlorovač sú podľa potvrdenej hydraulickej architektúry nezávislé vetvy. Dosiahnutie denného filtračného limitu preto ruší iba dodatočnú požiadavku na `MEGA_R9/D22` zo `SOLAR_EXTRA`; nemení `solarZapnuty`, solárnu reguláciu ani `MEGA_R10/D23`. Serial pri zmene uvádza zdroj `RTC_FIXED`, `SOLAR_EXTRA`, `MANUAL`, `TEST`, `FALLBACK_MILLIS` alebo `NONE`; v existujúcej 10 s diagnostike uvádza automatický denný čas a pri dosiahnutí limitov samostatné udalosti.
+
 #### Bestway interný približne 6 h časovač – SCHVÁLENÉ FYZICKÉ PRAVIDLO / IMPLEMENTOVANÉ, ČAKÁ NA FYZICKÝ TEST
 
 Filtrácia Bestway má vlastný interný približne 6-hodinový časovač. Dlhodobé držanie externého napájacieho/povoľovacieho relé ON preto samo negarantuje chod filtrácie dlhší ako približne 6 hodín. Ak SMART Mega požaduje pokračovanie filtrácie po dosiahnutí maximálneho súvislého ON intervalu, vykoná krátky power-cycle napájacej cesty filtrácie a následne pokračuje, pokiaľ stále existuje požiadavka na chod.
@@ -947,7 +959,7 @@ Produkčná Mega implementácia sleduje iba čas fyzického povolenia/napájania
 - ak požiadavka počas resetovacieho OFF zanikne, reset sa zruší a R9 zostane OFF;
 - po boote sa nevymýšľa predchádzajúca história a nový interval začína až prvým reálnym zapnutím R9.
 
-Continuous-run ochrana je samostatná od `FILTRACIA_CAS_ON/OFF` millis fallbacku, RTC harmonogramu aj `FILTRACIA_MANUAL_6H_CAS`. Power-cycle nemení ani nereštartuje čas zdrojovej požiadavky. Príklad: filtrácia už beží 3 h a používateľ zapne `FIL MANUAL 6H`; približne po ďalších 3 h sa vykoná krátky power-cycle, ale manual požiadavka ďalej končí pôvodných 6 h od aktivácie, takže po resete zostávajú približne 3 h. Pri prirodzených RTC blokoch `00–06 ON`, `06–12 OFF`, `12–18 ON`, `18–24 OFF` nevzniká extra OFF→ON, pretože skončenie požiadavky má prednosť a prirodzené OFF už interný časovač preruší.
+Continuous-run ochrana je samostatná od `FILTRACIA_CAS_ON/OFF` millis fallbacku, RTC harmonogramu, automatického denného countera aj `FILTRACIA_MANUAL_6H_CAS`. Power-cycle nemení ani nereštartuje čas zdrojovej požiadavky. Príklad: filtrácia už beží 3 h a používateľ zapne `FIL MANUAL 6H`; približne po ďalších 3 h sa vykoná krátky power-cycle, ale manual požiadavka ďalej končí pôvodných 6 h od aktivácie, takže po resete zostávajú približne 3 h. Ak súvislá automatická požiadavka `RTC_FIXED + SOLAR_EXTRA` presiahne približne 6 h, existujúci 2 s Bestway power-cycle prebehne a požiadavka potom pokračuje až do svojho denného limitu. Krátky reset napájania nemení automatický counter, pretože ten eviduje čas trvajúcej automatickej požiadavky, nie flow ani potvrdený mechanický chod čerpadla.
 
 Implementácia nemení fyzickú mapu: `MEGA_R9 / D22 = filtrácia`, `MEGA_R10 / D23 = solár/chrlič`. Oba active-LOW piny dostanú pri boote bezpečný HIGH/OFF latch ešte pred `pinMode(OUTPUT)`, bez zmeny ďalšej regulácie alebo runtime správania. Budúci flow senzor môže potvrdiť skutočný chod, ale nie je súčasťou tohto checkpointu.
 

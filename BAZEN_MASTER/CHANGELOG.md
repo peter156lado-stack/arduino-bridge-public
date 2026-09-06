@@ -2,6 +2,10 @@
 
 Obsahuje iba potvrdené architektonické rozhodnutia.
 
+## 2026-09-06
+
+- **SMART ČASOVANIE FILTRÁCIE PODĽA TEPELNEJ STRATÉGIE – SOFTWARE IMPLEMENTED / PHYSICAL TEST PENDING:** staré RTC bloky `00:00–06:00` a `12:00–18:00` nahradilo jedno pevné jadro `10:00–16:00`. Pri platnom RTC môže aktívny solár mimo jadra pridať `SOLAR_EXTRA`, najviac približne 4 h/deň a iba do celkového automatického limitu 10 h/deň. Neperzistentné countery sa neblokujú, používajú unsigned `millis()` subtraction a resetujú sa pri zmene platného RTC dátumu; po boote nič spätne nedopočítavajú. Bez platného RTC zostáva pôvodný 6 h ON/6 h OFF millis fallback, bez fiktívneho kalendárneho dňa a bez garancie 10 h limitu. Manual FIL 6H a TEST R9 zostali mimo automatického limitu a zachovali prioritu. Bestway 6 h/2 s power-cycle zostal funkčne nezmenený. Dosiahnutie limitu ruší iba extra požiadavku R9; nezávislá R10 solárna regulácia sa nemení. Mega build PASS: `44 980 B Flash / 4 443 B RAM / 3 749 B voľných`; cielené truth/rollover testy PASS. Safety, XKC, TOTAL STOP, agreement, UART, piny, BASIC a SystemMode sa nemenili.
+
 ## 2026-09-02
 
 - **AUDIT #9 – EARLY MEGA XKC/TOTAL STOP INITIALIZATION IMPLEMENTED:** jeden early-safety krok je teraz prvou runtime inicializáciou v Mega `setup()`. D30 sa nastaví `INPUT_PULLUP` a načíta sa počiatočný XKC stav; D32 energize-to-trip dostane LOW latch ešte pred `pinMode(OUTPUT)`. Až potom nasledujú ostatné inicializácie vrátane RTC/I2C/AHT. Neskoršie `inicializaciaVstupov()` a `inicializaciaVystupov()` už D30/D32 neinicializujú druhýkrát. XKC trip začína false, skorý LOW_WATER iba spúšťa nezmenené 5 s potvrdenie a recovery zostáva 10 s. Mega kompilácia PASS: `43 806 B Flash / 4 419 B RAM / 3 773 B voľných`. Stav auditu #9 je `FIXED_SOFTWARE / EARLY MEGA XKC/TOTAL STOP INITIALIZATION IMPLEMENTED`, nie `PHYSICALLY_CONFIRMED`; vyžaduje sa reálny boot/XKC commissioning. Audit #1 zostáva `OPEN`: early boot exposure bola riešená #9, runtime I2C blocking risk zostáva bez Wire timeoutu/recovery.

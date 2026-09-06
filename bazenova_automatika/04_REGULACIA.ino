@@ -40,7 +40,7 @@ bool filtraciaDatumInicializovany = false;
 byte filtraciaDatumDen = 0;
 byte filtraciaDatumMesiac = 0;
 byte filtraciaDatumRok = 0;
-bool filtraciaDennnyLimitBolDosiahnuty = false;
+bool filtraciaDennyLimitBolDosiahnuty = false;
 bool filtraciaSolarExtraLimitBolDosiahnuty = false;
 
 
@@ -194,7 +194,7 @@ void aktualizujDatumFiltracie(byte den, byte mesiac, byte rok) {
   filtraciaDatumRok = rok;
   filtraciaAutoDenneMs = 0;
   filtraciaSolarExtraDenneMs = 0;
-  filtraciaDennnyLimitBolDosiahnuty = false;
+  filtraciaDennyLimitBolDosiahnuty = false;
   filtraciaSolarExtraLimitBolDosiahnuty = false;
   Serial.println(F("FIL DAILY: RESET NEW DATE"));
 }
@@ -205,7 +205,7 @@ void aktualizujLimityFiltracie() {
   bool solarExtraLimit =
       filtraciaSolarExtraDenneMs >= FILTRACIA_SOLAR_EXTRA_DENNY_LIMIT;
 
-  if (dennyLimit && !filtraciaDennnyLimitBolDosiahnuty) {
+  if (dennyLimit && !filtraciaDennyLimitBolDosiahnuty) {
     Serial.println(F("FIL DAILY LIMIT REACHED"));
   }
 
@@ -213,7 +213,7 @@ void aktualizujLimityFiltracie() {
     Serial.println(F("FIL SOLAR EXTRA LIMIT REACHED"));
   }
 
-  filtraciaDennnyLimitBolDosiahnuty = dennyLimit;
+  filtraciaDennyLimitBolDosiahnuty = dennyLimit;
   filtraciaSolarExtraLimitBolDosiahnuty = solarExtraLimit;
 }
 
@@ -278,12 +278,6 @@ void regulaciaFiltracie() {
     filtraciaCasovacInicializovany = true;
     filtraciaJeVCykleON = true;
     casZmenyCyklaFiltracie = teraz;
-  }
-
-  // Docasny manualny test R9 ma prednost pred casovym rezimom.
-  if (testR9Aktivny) {
-    aktualizujNapajanieFiltracie(true);
-    return;
   }
 
   byte hodina;
