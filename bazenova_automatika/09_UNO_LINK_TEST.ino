@@ -12,7 +12,7 @@ const byte LINK_MAGIC_1 = 0xBA;
 const byte LINK_MAGIC_2 = 0x5E;
 // TEMPORARY END-OF-SEASON COMPATIBILITY: keep the complete V6 encoder below,
 // but transmit V5 until the Uno hardware/upload path is replaced or repaired.
-#define MEGA_UNO_TEMP_V5_COMPAT 1
+#define MEGA_UNO_TEMP_V5_COMPAT 0
 #if MEGA_UNO_TEMP_V5_COMPAT
 const byte LINK_PROTOCOL_VERSION = 5;
 #else
