@@ -10,11 +10,22 @@ const unsigned long UNO_REMOTE_TIMEOUT_MS = 10000UL;
 const unsigned long MEGA_SMART_STABILIZACIA_MS = 180000UL;
 const byte LINK_MAGIC_1 = 0xBA;
 const byte LINK_MAGIC_2 = 0x5E;
+// TEMPORARY END-OF-SEASON COMPATIBILITY: keep the complete V6 encoder below,
+// but transmit V5 until the Uno hardware/upload path is replaced or repaired.
+#define MEGA_UNO_TEMP_V5_COMPAT 1
+#if MEGA_UNO_TEMP_V5_COMPAT
+const byte LINK_PROTOCOL_VERSION = 5;
+#else
 const byte LINK_PROTOCOL_VERSION = 6;
+#endif
 const byte LINK_TYPE_UNO_TO_MEGA = 0x01;
 const byte LINK_TYPE_MEGA_TO_UNO = 0x02;
 const byte UNO_FRAME_SIZE = 22;
+#if MEGA_UNO_TEMP_V5_COMPAT
+const byte MEGA_FRAME_SIZE = 24;
+#else
 const byte MEGA_FRAME_SIZE = 38;
+#endif
 
 struct UnoRemoteSnapshot {
   float t1, t2, t3, tbox, sonar;
@@ -205,11 +216,13 @@ void pripravMegaRamec() {
   byte h, m, s, d, mo, y;
   const bool rtcOk = rtcCasJePlatny() && nacitajRTC(h, m, s, d, mo, y);
   if (rtcOk) validity |= 0x04;
+#if !MEGA_UNO_TEMP_V5_COMPAT
   if (T1_OK) validity |= 0x08;
   if (T2_OK) validity |= 0x10;
   if (T3_OK) validity |= 0x20;
   if (T4_OK) validity |= 0x40;
   if (MEGA_TBOX_OK) validity |= 0x80;
+#endif
   unoLinkTxBuffer[7] = validity;
   unoLinkTxBuffer[8] = (byte)zdrojTeplotyBazena;
   unoLinkTxBuffer[9] = (byte)zdrojT2;
@@ -230,6 +243,9 @@ void pripravMegaRamec() {
   unoLinkTxBuffer[20] = rtcOk ? y : 0;
   unoLinkTxBuffer[21] = rtcOk ? mo : 0;
   unoLinkTxBuffer[22] = rtcOk ? d : 0;
+#if MEGA_UNO_TEMP_V5_COMPAT
+  unoLinkTxBuffer[23] = linkCrc8(unoLinkTxBuffer, MEGA_FRAME_SIZE - 1);
+#else
   zapisI16(unoLinkTxBuffer, 23, T1_OK ? teplotaNaStotiny(t1) : 0);
   zapisI16(unoLinkTxBuffer, 25, T2_OK ? teplotaNaStotiny(t2) : 0);
   zapisI16(unoLinkTxBuffer, 27, T3_OK ? teplotaNaStotiny(t3) : 0);
@@ -247,6 +263,7 @@ void pripravMegaRamec() {
   modeAProblem |= (byte)((megaProblemPodlaPoradia(0) & 0x1F) << 2);
   unoLinkTxBuffer[36] = modeAProblem;
   unoLinkTxBuffer[37] = linkCrc8(unoLinkTxBuffer, MEGA_FRAME_SIZE - 1);
+#endif
   unoLinkTxPozicia = 0;
 }
 
@@ -282,7 +299,11 @@ void aktualizujKrizovuDiagnostiku() {
 void inicializaciaUnoLinkTest() {
   Serial2.begin(UNO_LINK_BAUD);
   unoLinkPosledneFrameTxMs = millis() - UNO_LINK_FRAME_INTERVAL_MS;
+#if MEGA_UNO_TEMP_V5_COMPAT
+  Serial.println("UNO LINK: Serial2 D16/D17 @ 38400, BINARY V5 CRC8 [TEMP]");
+#else
   Serial.println("UNO LINK: Serial2 D16/D17 @ 38400, BINARY V6 CRC8");
+#endif
 }
 
 void nastavMegaAgreement(bool povolit) {
