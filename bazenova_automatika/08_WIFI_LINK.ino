@@ -42,6 +42,17 @@ bool wifiPridajFloat(float hodnota, bool platna) {
   return wifiPridajText(textHodnoty);
 }
 
+bool wifiPridajFloat2(float hodnota, bool platna) {
+
+  if (!platna || isnan(hodnota) || isinf(hodnota)) {
+    return wifiPridajText("NA");
+  }
+
+  char textHodnoty[16];
+  dtostrf(hodnota, 0, 2, textHodnoty);
+  return wifiPridajText(textHodnoty);
+}
+
 void wifiPridajDvojciferne(byte hodnota) {
 
   char cislo[3];
@@ -95,6 +106,16 @@ void pripravWifiData() {
   wifiPridajText(";TBOX=");
   wifiPridajFloat(MEGA_TBOX_OK ? megaTbox : unoRemoteTboxHodnota(),
                    MEGA_TBOX_OK || unoRemoteTboxPlatna());
+  // Read-only supervisor diagnostics. Validity includes remote freshness and,
+  // for T1/T2/T3, the existing Mega-side role revalidation.
+  wifiPridajText(";UT1=");
+  wifiPridajFloat2(unoRemoteT1Hodnota(), unoRemoteT1Platna());
+  wifiPridajText(";UT2=");
+  wifiPridajFloat2(unoRemoteT2Hodnota(), unoRemoteT2Platna());
+  wifiPridajText(";UT3=");
+  wifiPridajFloat2(unoRemoteT3Hodnota(), unoRemoteT3Platna());
+  wifiPridajText(";UTBOX=");
+  wifiPridajFloat2(unoRemoteTboxHodnota(), unoRemoteTboxPlatna());
   wifiPridajText(";MODE=");
   switch (systemMode) {
     case MODE_SMART: wifiPridajText("SMART"); break;
