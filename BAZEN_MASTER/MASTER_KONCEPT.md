@@ -1,6 +1,6 @@
 # BAZEN MASTER – koncepcia
 
-Aktualizované: 2026-08-22
+Aktualizované: 2026-09-08
 
 ## Zdroje pravdy a názvoslovie
 
@@ -17,6 +17,40 @@ V dokumentácii používame:
 - MEGA_R5 až MEGA_R16 pre fyzické kanály 5–16 tej istej dosky, ktoré zostávajú reléovou časťou Mega/SMART.
 
 Pôvodná väzba Mega `R1`–`R4` na D30–D33 už neplatí a bola zo zdrojového kódu aj fyzickej kabeláže odstránená. BASIC_R1/R2 sú fyzicky vložené do motorových FIL/SOLAR ciest cez BASIC/watchdog architektúru. BASIC_R3 je fyzicky zapojený kontaktom `COM–NC` v 12 V napájacej ceste W1209; BASIC_R4 zostáva rezervovaný a fyzicky ďalej nezapojený. Konkrétne Uno/BASIC riadiace piny a autonómna logika zostávajú neurčené.
+
+## SCHVÁLENÝ CIEĽOVÝ BAZÉN
+
+**STATUS: FINÁLNE SCHVÁLENÝ AUTORITATÍVNY ZÁKLAD ĎALŠEJ FÁZY PROJEKTU.**
+
+- Výrobca/rada: Bestway APX365.
+- Rozmer vane: 549 × 274 × 132 cm.
+- Preferovaný kompletný model: Bestway 561KA.
+- SOLO model: Bestway 561NJ.
+- Maximálny pôdorys vrátane nôh: približne 599 × 319 cm.
+- Hĺbka vody: približne 119 cm.
+- Objem pri 90 %: 16 477 l.
+- Pripojenie filtrácie: Ø38 mm.
+- Materiál vane: TriTech.
+- Rám: pozinkovaná oceľ / ClickConnect.
+- Zimná konštrukcia: Polar-Shield.
+
+Autoritatívne projektové veličiny:
+
+- `POOL_VOLUME = 16,5 m³`
+- `POOL_SURFACE ≈ 15 m²`
+- `THERMAL_CAPACITY ≈ 19,2 kWh/K`
+- energia na zvýšenie teploty vody o 5 °C: približne 96 kWh;
+- energia na zvýšenie teploty vody o 10 °C: približne 192 kWh.
+
+Tieto hodnoty sú autoritatívnym základom pre budúce tepelné, hydraulické a energetické výpočty. Predchádzajúci pracovný cieľ objemu už nie je aktuálnym projektovým parametrom. Toto rozhodnutie samo osebe nemení existujúce prietoky, časy filtrácie, výkon horáka ani počet solárnych panelov; tie sa prepočítajú osobitne.
+
+Stručný rámec zazimovania:
+
+- bazén zostáva postavený;
+- hladina sa zníži pod vývody;
+- technológia, hadice, ventily a snímače sa odvodnia;
+- použije sa zimná plachta;
+- samotná Polar-Shield konštrukcia je určená na zimné ponechanie podľa podmienok výrobcu.
 
 ## NÁVRHOVÝ KONTEXT A FILOZOFIA PROJEKTU – ZÁVÄZNÉ PRAVIDLO
 
@@ -507,7 +541,7 @@ Po prechode na postupnosť `Mega MASTER rámec → úplný príjem a validácia 
 
 **STATUS: NÁVRH DO BUDÚCNA – NEIMPLEMENTOVAŤ TERAZ.** Tento návrh nemení dnešnú architektúru, fyzickú zostavu, vlastníctvo funkcií, piny ani programy.
 
-Pri prechode na väčší bazén približne 18–20 m³ alebo po získaní druhej fyzickej dosky Mega 2560 možno zvážiť nahradenie Uno doskou Mega #2.
+Finálny výber cieľového bazéna sám osebe nemení aktuálne roly procesorov. Nahradenie Uno doskou Mega #2 možno zvážiť po získaní druhej fyzickej dosky Mega 2560 a po samostatnom schválení migrácie.
 
 - **Mega #1 – MASTER / CONTROL:** hlavné riadenie bazéna, SMART regulácia, vlastné prioritné senzory a akčné členy a pridelená časť diagnostiky.
 - **Mega #2 – SUPERVISOR / SAFETY / BASIC / BLACK BOX:** prevezme dnešnú úlohu Uno, vlastné prioritné senzory, BASIC, watchdog/reset, agreement a BLACK BOX. Vďaka väčšej pamäti môže prevziať aj ďalšiu jasne pridelenú časť diagnostiky a odľahčiť Mega #1.
@@ -918,11 +952,11 @@ Solárne vetvy majú ventily na presmerovanie toku. Podľa polohy ventilov možn
 
 Dôvod oddelenia: filtrácia/chlorovač má zostať nezávislá hydraulická cesta. Solár, horák/výmenník, chrlič a bazénový solár sa rozdeľujú až v samostatnej vetve za solárnym čerpadlom a X-kusom.
 
-## Bazén, vodné okruhy a reálne prevádzkové parametre
+## Doterajší bazén, vodné okruhy a reálne prevádzkové parametre
 
-Údaje v tejto sekcii sú potvrdené fyzické údaje zostavy a reálne prevádzkové pozorovania. Hodnoty označené ako reálne, približné alebo pozorované nie sú garantované výrobné parametre.
+Údaje v tejto sekcii sú potvrdené fyzické údaje doterajšej prevádzkovanej zostavy a reálne prevádzkové pozorovania. Zachovávajú historickú prevádzkovú základňu pred prechodom na schválený cieľový bazén; nie sú autoritatívnymi parametrami budúceho bazéna. Hodnoty označené ako reálne, približné alebo pozorované nie sú garantované výrobné parametre.
 
-### Bazén
+### Doterajší bazén – historická prevádzková základňa
 
 - Výrobca/typ: Intex.
 - Približné rozmery: 4,5 × 2,2 × 0,84 m.

@@ -2,6 +2,11 @@
 
 Obsahuje iba potvrdené architektonické rozhodnutia.
 
+## 2026-09-08
+
+- **FINÁLNE SCHVÁLENÝ CIEĽOVÝ BAZÉN:** autoritatívnym základom ďalšej fázy projektu je Bestway APX365 549 × 274 × 132 cm, preferovaný kompletný model 561KA (SOLO 561NJ), s projektovým objemom 16,5 m³, plochou hladiny približne 15 m² a tepelnou kapacitou približne 19,2 kWh/K. Objem pri 90 % je 16 477 l; projektový energetický základ je približne 96 kWh pre +5 °C a 192 kWh pre +10 °C. Predchádzajúci pracovný návrhový rozsah 18–20 m³ bol týmto rozhodnutím nahradený a už nie je aktuálnym projektovým parametrom.
+- Rozhodnutie nemení safety, role procesorov, piny, UART, režimy, hydraulickú logiku ani produkčný kód. Nové prietoky, časy filtrácie, výkon horáka a počet solárnych panelov sa týmto zápisom neprepočítavali. Doterajšie fyzické údaje starého bazéna zostávajú zachované iba ako historická prevádzková základňa.
+
 ## 2026-09-06
 
 - **DS18B20 12-BIT ZJEDNOTENIE – SOFTWARE IMPLEMENTED / PHYSICAL TEST PENDING:** Mega T1/T2/T3/T4/TBOX sa po jedinom boot `sensors.begin()` každý explicitne nastaví na 12 bit. Uno T1/T2/T3/TBOX sa explicitne nastavia na 12 bit pri boote aj po každej existujúcej OneWire reinicializácii. Nepribudli kalibračné offsety. Nezmenené neblokujúce okná 750 ms Mega a 800 ms Uno pokrývajú maximálnu 12-bit konverziu; `setWaitForConversion(false)`, 5 300 ms Uno interval a 5 000 ms recovery zostali zachované. Build pred/po: Mega `45 712→46 188 B Flash`, RAM `4 457→4 457 B`; Uno `29 562→29 562 B Flash`, RAM `1 290→1 290 B`. Statická kontrola všetkých aktívnych senzorov, boot/recovery a absencie `setResolution(..., 10)` PASS. Predchádzajúci UART V6/38 B, 41-stĺpcový logger, safety, piny a control logika zostali nezmenené. Upload, commit, push ani publisher nebol vykonaný.
@@ -124,7 +129,7 @@ Obsahuje iba potvrdené architektonické rozhodnutia.
 
 ## 2026-08-20
 
-- Zapísaný nezáväzný budúci návrh `UNO → MEGA #2` pre prípad väčšieho bazéna približne 18–20 m³ alebo dostupnosti druhej Mega 2560. Mega #1 by zostala MASTER/CONTROL a Mega #2 by prevzala SUPERVISOR/SAFETY/BASIC/BLACK BOX. Návrh zachováva rozdelenie bežnej diagnostiky podľa jasného vlastníka, nezávislé overenie kritických ochrán a SMART s 2× agreement. **Status zostáva NÁVRH DO BUDÚCNA – NEIMPLEMENTOVAŤ TERAZ; aktuálna Uno architektúra, programy a piny sa nemenia.**
+- **HISTORICKÝ NÁVRH – NÁSLEDNE NAHRADENÝ FINÁLNYM VÝBEROM BAZÉNA 2026-09-08:** bol zapísaný nezáväzný budúci návrh `UNO → MEGA #2` pre prípad väčšieho bazéna približne 18–20 m³ alebo dostupnosti druhej Mega 2560. Mega #1 by zostala MASTER/CONTROL a Mega #2 by prevzala SUPERVISOR/SAFETY/BASIC/BLACK BOX. Návrh zachovával rozdelenie bežnej diagnostiky podľa jasného vlastníka, nezávislé overenie kritických ochrán a SMART s 2× agreement. Vtedajší status bol **NÁVRH DO BUDÚCNA – NEIMPLEMENTOVAŤ TERAZ**; objemový predpoklad už nie je aktuálny, pričom aktuálna Uno architektúra, programy a piny sa týmto dokumentačným rozhodnutím nemenia.
 - **SCHVÁLENÉ – TVRDÁ ARCHITEKTÚRA SMART AGREEMENT:** `SMART = MEGA_AGREEMENT AND UNO_AGREEMENT`. SMART vyžaduje dve nezávislé `ÁNO`; jedno `NIE` stačí na zrušenie SMART a prechod/sprístupnenie BASIC. Každá doska môže vlastný agreement odobrať bez spolupráce druhej, vrátane situácie, keď druhá doska zamrzla s výstupom v poslednom stave. Na kritickú safety reakciu stačí jedna oprávnená kritická ochrana.
 - Strata jedného agreement sama osebe nie je STOP. Návrat do SMART vyžaduje obnovenie oboch agreement a dokončenie `BOOT → SELF_TEST → LINK/SYNC OK → STABLE → AGREEMENT` vrátane anti-flap stabilizácie. Staršie formulácie pripúšťajúce SMART s jediným agreement alebo vyžadujúce spoločný súhlas na zrušenie SMART sú neaktuálne. Program, piny ani fyzické zapojenie neboli zmenené.
 - **SCHVÁLENÉ – TVRDÁ ARCHITEKTÚRA SMART↔BASIC:** fyzický odpad, zamrznutie, strata napájania alebo strata HW povolenia jedného procesora musí bez čakania na softvér zrušiť SMART a mechanicky sprístupniť BASIC. Riadený odchod živého systému zo SMART používa postupnosť `SMART výstupy OFF → dobeh → dead-time → BASIC`; SMART a BASIC nesmú úmyselne súčasne riadiť rovnakú technológiu.

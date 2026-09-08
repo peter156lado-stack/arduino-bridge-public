@@ -1,8 +1,30 @@
 # BAZEN MASTER – hardvérový inventár
 
-Aktualizované: 2026-09-01
+Aktualizované: 2026-09-08
 
 MÁME znamená fyzicky doručené. Použitie je uvedené iba podľa kódu alebo potvrdených poznámok. Neznáme údaje sú NEURČENÉ.
+
+## Schválený cieľový bazén
+
+**Bestway APX365 549 × 274 × 132 cm / preferovaný kompletný model 561KA je finálne vybraný bazén pre ďalšiu fázu projektu.** SOLO model je 561NJ. Toto rozhodnutie je autoritatívne pre projektovanie; fyzické dodanie a montáž týmto zápisom nie sú potvrdené.
+
+| Parameter | Autoritatívny údaj |
+|---|---|
+| Rozmer vane | 549 × 274 × 132 cm |
+| Maximálny pôdorys vrátane nôh | približne 599 × 319 cm |
+| Hĺbka vody | približne 119 cm |
+| Objem pri 90 % | 16 477 l |
+| Projektový objem | 16,5 m³ |
+| Plocha hladiny | približne 15 m² |
+| Tepelná kapacita vody | približne 19,2 kWh/K |
+| Energia +5 °C | približne 96 kWh |
+| Energia +10 °C | približne 192 kWh |
+| Pripojenie filtrácie | Ø38 mm |
+| Materiál vane | TriTech |
+| Rám | pozinkovaná oceľ / ClickConnect |
+| Zimná konštrukcia | Polar-Shield |
+
+Bazén sa plánuje ponechať postavený cez zimu. Hladina sa zníži pod vývody, technológia/hadice/ventily/snímače sa odvodnia a použije sa zimná plachta. Polar-Shield konštrukcia je určená na zimné ponechanie podľa podmienok výrobcu.
 
 ## Riadiace jednotky
 
