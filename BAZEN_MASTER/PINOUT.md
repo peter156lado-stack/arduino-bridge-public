@@ -189,6 +189,35 @@ ESP-01S bol fyzicky odstránený z Uno zostavy; je funkčný a uložený SKLADOM
 
 UNO 1-Wire zbernica na D2 používa presne jeden spoločný fyzicky osadený pull-up rezistor 4,7 kΩ pre UNO_T1, UNO_T2, UNO_T3 a UNO_TBOX. V tomto zapojení boli všetky štyri DS18B20 úspešne fyzicky testované. Pri presune do rozvádzača sa existujúci rezistor zachová a nesmie sa pridať ďalší paralelný pull-up. Napätie, na ktoré je horná strana 4,7 kΩ pripojená, nebolo potvrdené a zostáva `NEOVERENÉ`.
 
+## Arduino Mega2 – pripravený nástupca Uno
+
+**STATUS: SOFTWARE PREPARED / PHYSICAL MIGRATION PENDING / NOT COMMISSIONED.**
+Pôvodný Uno pinout vyššie zostáva autoritatívnym záznamom súčasnej fyzickej
+zostavy až do dokončenia migrácie. Mega2 nepreberá SMART reguláciu.
+
+| Mega2 pin | Smer | Funkcia po migrácii | Stav / fyzická akcia |
+|---|---|---|---|
+| D2 | I/O | UNO_T1/T2/T3/TBOX 1-Wire | 1:1 z Uno D2; zachovať jediný 4,7 kΩ pull-up, jeho horné napätie overiť |
+| D3 | OUT | HY-SRF05 TRIG | 1:1 z Uno D3 |
+| D4 | IN | HY-SRF05 ECHO | 1:1 z Uno D4; bez interného pull-upu |
+| D9 | OUT | supervisor agreement | 1:1 z Uno D9; boot/reset LOW, HIGH až po 180 s stability |
+| D10 | OUT | MicroSD CS | 1:1 z Uno D10 |
+| D18/TX1 | OUT | Mega2 reply → Mega1 D17/RX2 | namiesto Uno D8; HW `Serial1`, cez zachovaný 10 kΩ |
+| D19/RX1 | IN | Mega1 D16/TX2 → Mega2 | namiesto Uno D7; HW `Serial1`, cez zachovaný 10 kΩ |
+| D50/MISO | IN | MicroSD MISO | namiesto Uno D12 |
+| D51/MOSI | OUT | MicroSD MOSI | namiesto Uno D11 |
+| D52/SCK | OUT | MicroSD SCK | namiesto Uno D13 |
+| D53 | OUT HIGH | Mega2560 HW SS master | bez externého SD vodiča; neobsadzovať inou funkciou |
+| A0 | OUT | Mega2 TOTAL STOP | 1:1 z Uno A0; energize-to-trip, jediný writer |
+| A2 | IN_PULLUP | Mega2 XKC | 1:1 z Uno A2; LOW=WATER, HIGH=LOW_WATER/open path |
+
+Mega1 zostáva `Serial2` D16/TX2 a D17/RX2. Mega2 používa `Serial1`
+D19/RX1 a D18/TX1. Fyzická vrstva zostáva priame neinvertované TTL,
+38400 Bd, spoločná GND, sériový 10 kΩ v oboch smeroch, bez spoločného +5 V a
+bez PC817. Protokol zostáva V6 38 B/22 B. D5, D6 a A1 nemajú migrovaný
+vodič; BASIC_R1–R4 a cross-reset piny zostávajú TBD. Úplná káblová mapa je v
+`MEGA2_MIGRATION_PHASE1.md`.
+
 ## Onboard ESP8266
 
 ### FYZICKY OVERENÉ

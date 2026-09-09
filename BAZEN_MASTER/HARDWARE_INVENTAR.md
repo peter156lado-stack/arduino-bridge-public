@@ -31,6 +31,7 @@ Bazén sa plánuje ponechať postavený cez zimu. Hladina sa zníži pod vývody
 | Položka | Kúpené | Použité | Kde použité | Plánovaná funkcia | Voľná zásoba | Stav |
 |---|---:|---:|---|---|---:|---|
 | Arduino Mega + WiFi, Techfun IOT382 | 1 | 1 | Mega + onboard ESP projekty | hlavný SMART kontrolér + samostatný ESP8266 pre web HMI | 0 | NAMONTOVANÉ; presné DIP režimy fyzicky NEOVERENÉ |
+| Arduino Mega 2560 – cieľová Mega2 | NEOVERENÉ | 0 fyzicky potvrdených | zatiaľ iba `bazenova_automatika_mega2` | nástupca Uno: SUPERVISOR / VERIFY / SAFETY / BASIC / BLACK BOX | NEOVERENÉ | SOFTWARE PREPARED / PHYSICAL KUS, NAPÁJANIE A SHIELD NEOVERENÉ |
 | KIT240 – Arduino UNO Elementary/Starter kit | 1 kit | 1 kit otvorený | Uno projekt + prototypovací materiál | zdroj Uno a pomocné prototypovanie | 0 celých kitov | MÁME |
 | ESP8266 ESP-01S | 1 | 0 | SKLADOM | NEURČENÉ | 1 | SKLADOM / funkčné |
 

@@ -2,6 +2,11 @@
 
 Obsahuje iba potvrdené architektonické rozhodnutia.
 
+## 2026-09-09
+
+- **UNO → MEGA2 MIGRATION PHASE 1 – SOFTWARE PREPARED / PHYSICAL MIGRATION PENDING:** vznikol samostatný projekt `bazenova_automatika_mega2` ako platformový port aktuálne implementovanej role Uno na Arduino Mega 2560. Mega1 zostáva jediný MASTER/CONTROL a Mega2 zostáva SUPERVISOR/VERIFY/SAFETY/BASIC/BLACK BOX bez novej SMART autority. Safety piny D2/D3/D4/D9/A0/A2 sa mapujú 1:1; linka sa na Mega2 presúva z Uno SoftwareSerial D7/D8 na HW `Serial1` D19/RX1 a D18/TX1, pričom Mega1 ostáva na `Serial2` D16/D17. SD CS zostáva D10, SPI sa správne mapuje na Mega2560 D50/MISO, D51/MOSI, D52/SCK a interný HW SS D53. V6 38 B/22 B, 38400 Bd, CRC-8/ATM, MASTER→REPLY, 500 ms reply window, 10 s timeout, 180 s agreement, XKC 5 s/10 s, TOTAL STOP a 41-stĺpcový BLACK BOX formát zostali nezmenené. Kompletná mapa je v `MEGA2_MIGRATION_PHASE1.md`; upload ani fyzické testy neprebehli.
+- Aktuálne Uno nemá implementované autonómne BASIC_R1–R4 ani fyzický cross-reset; Mega2 príprava tieto chýbajúce funkcie nevymýšľa. `CROSS_RESET_ENABLED=0`, piny zostávajú TBD. Pôvodný Uno stav zostáva v dokumentácii zachovaný ako fyzický predchodca až do commissioningu Mega2.
+
 ## 2026-09-08
 
 - **FINÁLNE SCHVÁLENÝ CIEĽOVÝ BAZÉN:** autoritatívnym základom ďalšej fázy projektu je Bestway APX365 549 × 274 × 132 cm, preferovaný kompletný model 561KA (SOLO 561NJ), s projektovým objemom 16,5 m³, plochou hladiny približne 15 m² a tepelnou kapacitou približne 19,2 kWh/K. Objem pri 90 % je 16 477 l; projektový energetický základ je približne 96 kWh pre +5 °C a 192 kWh pre +10 °C. Predchádzajúci pracovný návrhový rozsah 18–20 m³ bol týmto rozhodnutím nahradený a už nie je aktuálnym projektovým parametrom.

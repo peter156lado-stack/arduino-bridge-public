@@ -537,9 +537,9 @@ Po prechode na postupnosť `Mega MASTER rámec → úplný príjem a validácia 
 
 **USB servisné odporúčanie:** staršie podozrenie, že USB hub je hlavnou príčinou V3 chýb, sa nepotvrdilo; koreňovou príčinou bolo prekrytie nezávislých TX timerov a asymetria SoftwareSerial. Pri programovaní a USB Serial diagnostike sa napriek tomu odporúča priamy USB port základnej dosky PC, pretože USB hub môže testovacie prostredie zhoršiť. USB hub však nie je potvrdenou koreňovou príčinou pôvodných `CRC_FAIL/SEQ_GAP`.
 
-### NÁVRH DO BUDÚCNA – UNO → MEGA #2
+### UNO → MEGA #2 – PHASE 1 SOFTWARE PREPARED / PHYSICAL MIGRATION PENDING
 
-**STATUS: NÁVRH DO BUDÚCNA – NEIMPLEMENTOVAŤ TERAZ.** Tento návrh nemení dnešnú architektúru, fyzickú zostavu, vlastníctvo funkcií, piny ani programy.
+**STATUS: SOFTWARE PREPARED / PHYSICAL MIGRATION PENDING / NOT COMMISSIONED.** Pôvodne išlo iba o budúci návrh. Dňa 2026-09-09 bola schválená a pripravená prvá softvérová migračná fáza; aktuálna fyzická zostava a produkčný Mega1/Uno/ESP kód sa tým nemenia.
 
 Finálny výber cieľového bazéna sám osebe nemení aktuálne roly procesorov. Nahradenie Uno doskou Mega #2 možno zvážiť po získaní druhej fyzickej dosky Mega 2560 a po samostatnom schválení migrácie.
 
@@ -555,9 +555,11 @@ Kritické safety funkcie sú výnimka. Každá doska musí nezávisle vykonať j
 - kritická ochrana → nezávislé overenie oboma doskami;
 - SMART → dve nezávislé agreement `ÁNO`.
 
-Prípadná migrácia nemá znamenať návrh systému od začiatku. Má zachovať súčasnú filozofiu, protokolové princípy a role, využiť väčšiu pamäť Mega #2 a podľa možností nahradiť SoftwareSerial hardvérovým UART. Konkrétna doska, UART, piny, rozdelenie diagnostických funkcií, migrácia BLACK BOX a zmeny protokolu zostávajú `NEURČENÉ` až do osobitného schválenia.
+Migrácia nie je návrh systému od začiatku. Zachováva súčasnú filozofiu, protokol V6 a role. Nový samostatný projekt `bazenova_automatika_mega2` vychádza z aktuálnej implementovanej Uno role; SoftwareSerial nahrádza Mega2 `Serial1` na D19/RX1 a D18/TX1. Mega1 zostáva na `Serial2` D16/TX2 a D17/RX2. V6, 38 B/22 B, 38400 Bd, CRC-8/ATM, MASTER→REPLY, 500 ms reply okno, 10 s timeouty a 180 s agreement sa nemenia. SD CS zostáva D10, ale HW SPI Mega2560 používa D50/MISO, D51/MOSI a D52/SCK; D53 zostáva HW SS master výstup. Kompletná 1:1 mapa, hranice implementovaného BASIC a commissioning checklist sú v `MEGA2_MIGRATION_PHASE1.md`.
 
 Uno číta XKC lokálne na A2 a agreement riadi osobitne na D9. XKC Safety V1 po 5 s súvislého lokálneho LOW WATER nastaví `UNO_XKC_TRIP` a aktivuje A0 aj bez Mega/UART/agreement; po 10 s súvislého WATER ho zruší. Prenášaný Mega XKC stav a konflikt zostávajú iba diagnostické. Samostatný heartbeat, ACK/reset, ďalšie závažné poruchy a autonómna BASIC logika zostávajú predmetom osobitného schválenia.
+
+V pripravenom Mega2 porte zostávajú safety piny číselne 1:1: XKC A2, TOTAL STOP A0 a agreement D9. D2 OneWire a D3/D4 sonar sú tiež 1:1. Logické názvy `UNO_*`, 22 B reply layout a 41-stĺpcový CSV formát sa zámerne nemenia kvôli kompatibilite s Mega1 a existujúcimi nástrojmi. Autonómne BASIC_R1–R4 ani cross-reset nemajú pridelené piny a neboli touto fázou vymyslené ani aktivované.
 
 ### ESP-01S pôvodne pri Uno
 
