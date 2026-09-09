@@ -541,7 +541,7 @@ Po prechode na postupnosť `Mega MASTER rámec → úplný príjem a validácia 
 
 **STATUS: SOFTWARE PREPARED / PHYSICAL MIGRATION PENDING / NOT COMMISSIONED.** Pôvodne išlo iba o budúci návrh. Dňa 2026-09-09 bola schválená a pripravená prvá softvérová migračná fáza; aktuálna fyzická zostava a produkčný Mega1/Uno/ESP kód sa tým nemenia.
 
-Finálny výber cieľového bazéna sám osebe nemení aktuálne roly procesorov. Nahradenie Uno doskou Mega #2 možno zvážiť po získaní druhej fyzickej dosky Mega 2560 a po samostatnom schválení migrácie.
+Finálny výber cieľového bazéna sám osebe nemení aktuálne roly procesorov. Softvérová fáza 1 nahradenia Una doskou Mega #2 je týmto samostatne schválená a pripravená; fyzická migrácia môže začať až po potvrdení konkrétnej druhej Mega 2560, napájania, shieldu a commissioning postupu.
 
 - **Mega #1 – MASTER / CONTROL:** hlavné riadenie bazéna, SMART regulácia, vlastné prioritné senzory a akčné členy a pridelená časť diagnostiky.
 - **Mega #2 – SUPERVISOR / SAFETY / BASIC / BLACK BOX:** prevezme dnešnú úlohu Uno, vlastné prioritné senzory, BASIC, watchdog/reset, agreement a BLACK BOX. Vďaka väčšej pamäti môže prevziať aj ďalšiu jasne pridelenú časť diagnostiky a odľahčiť Mega #1.

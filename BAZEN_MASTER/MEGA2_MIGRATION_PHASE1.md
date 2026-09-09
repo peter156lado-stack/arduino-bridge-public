@@ -129,6 +129,17 @@ nejde o súčasť tejto migrácie.
 - Cross-reset zostáva compile-time vypnutý, bez GPIO a bez runtime účinku.
 - Mega2 nepridáva SMART reguláciu ani command endpoint.
 
+## Build Phase 1
+
+Kompilácia pre `Arduino Mega or Mega 2560 / ATmega2560` prešla:
+
+- Flash: **29 548 B / 253 952 B**;
+- globálna SRAM: **1 330 B / 8 192 B**;
+- voľná SRAM pre lokálne premenné/stack: **6 862 B**.
+
+Build nie je fyzický commissioning. Nebol vykonaný upload ani test reálnej
+kabeláže, SD modulu, UART linky alebo safety relé na Mega2.
+
 ## Konflikty a aktuálne hranice zdrojov
 
 - Staršie vety v MASTER/PINOUT uvádzajú V6 alebo automatický XKC test ako
