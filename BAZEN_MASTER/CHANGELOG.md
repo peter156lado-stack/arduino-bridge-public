@@ -2,6 +2,12 @@
 
 Obsahuje iba potvrdené architektonické rozhodnutia.
 
+## 2026-09-10
+
+- **MEGA2 ESP READ-ONLY HMI – ČAS A HISTÓRIA TEPLOT:** samostatný `mega2_wifi` zobrazuje NTP dátum/čas v lokálnej CET/CEST zóne a dostal read-only stránku `/logs`. Do denných LittleFS súborov `/m2log_YYYYMMDD.csv` môže každých 60 s zapísať spoločný snapshot M2 T1/T2/T3/TBOX a prijatého M1 T1/T2/T3/T4/TBOX; každý riadok začína časom `HH:MM:SS`. Zápis je povolený iba pri platnom NTP čase a čerstvej kompletnej M2→ESP telemetrii, jednotlivé neplatné teploty sú `NA` a stale/chýbajúci snapshot sa nezapisuje. LittleFS sa automaticky neformátuje ani nemaže.
+- Väčšie HTML odpovede sa kvôli spoľahlivosti cez telefónny hotspot odosielajú po 512-bajtových blokoch s `yield()`. M2 ESP build PASS: `34 616 B` globálna RAM, `60 275 B` IRAM, `328 648 B` flash kód; upload na COM4 a flash hash PASS. Živý test na DHCP adrese `192.168.43.43`: hlavná stránka `6 630 B` PASS, `/logs` `3 549 B` PASS, status/logdays API a GET/HEAD PASS, write metódy na `/logs` vrátili 405. NTP a LittleFS boli funkčné. Počas testu však `m2Online=false`, preto prvý skutočný minútový riadok s čerstvou M2 telemetriou zostáva `PHYSICAL END-TO-END TEST PENDING`.
+- Táto zmena nemení Mega1 ani Mega2 riadiaci firmware, M1↔M2 V6, safety, piny, TOTAL STOP, agreement, BASIC, `SystemMode` ani výstupy. Mega2 ESP zostáva bez process/control autority; existujúci zápis Wi-Fi profilu cez `/config` je iba lokálna konfigurácia ESP.
+
 ## 2026-09-09
 
 - **UNO → MEGA2 MIGRATION PHASE 1 – SOFTWARE PREPARED / PHYSICAL MIGRATION PENDING:** vznikol samostatný projekt `bazenova_automatika_mega2` ako platformový port aktuálne implementovanej role Uno na Arduino Mega 2560. Mega1 zostáva jediný MASTER/CONTROL a Mega2 zostáva SUPERVISOR/VERIFY/SAFETY/BASIC/BLACK BOX bez novej SMART autority. Implementované senzorové/safety piny D2/D3/D4/D9/A0/A2 sa mapujú 1:1; linka sa na Mega2 presúva z Uno SoftwareSerial D7/D8 na HW `Serial1` D19/RX1 a D18/TX1, pričom Mega1 ostáva na `Serial2` D16/D17. SD CS zostáva D10, SPI sa správne mapuje na Mega2560 D50/MISO, D51/MOSI, D52/SCK a interný HW SS D53. V6 38 B/22 B, 38400 Bd, CRC-8/ATM, MASTER→REPLY, 500 ms reply window, 10 s timeout, 180 s agreement, XKC 5 s/10 s, TOTAL STOP a 41-stĺpcový BLACK BOX formát zostali nezmenené. Mega2 build PASS: `29 548 B Flash / 1 330 B SRAM / 6 862 B voľných`. Kompletná mapa je v `MEGA2_MIGRATION_PHASE1.md`; upload ani fyzické testy neprebehli.

@@ -1,10 +1,10 @@
 # BAZEN MASTER – koncepcia
 
-Aktualizované: 2026-09-08
+Aktualizované: 2026-09-10
 
 ## Zdroje pravdy a názvoslovie
 
-Dokument vychádza z projektov bazenova_automatika (Mega), bazenova_automatika uno (Uno), bazen_wifi (onboard ESP8266), potvrdených fyzických testov a nákupných zoznamov.
+Dokument vychádza z projektov bazenova_automatika (Mega1), bazenova_automatika uno (historický/prechodný Uno supervisor), bazenova_automatika_mega2 (Mega2 supervisor), bazen_wifi (Mega1 onboard ESP8266), bazenova_automatika_mega2/mega2_wifi (Mega2 onboard ESP8266), potvrdených fyzických testov a nákupných zoznamov.
 
 Otvorené auditné nálezy a stav ich riešenia: AUDIT_BACKLOG.md
 
@@ -1183,7 +1183,18 @@ Zatiaľ nie sú potvrdené a nesmú sa domýšľať:
 - konkrétne elektrické zapojenie dopúšťania, typ COAX ventilu, riadiaci pin a diagnostika plavákov;
 - piny a poruchová logika infračerveného snímača plameňa.
 
-## ESP Wi-Fi/web HMI – implementované vo firmvéri, čaká na fyzický test (2026-08-31)
+## Mega2 ESP Wi-Fi/web HMI a história – implementované/nahrané, čiastočne fyzicky overené (2026-09-10)
+
+- Mega2 onboard ESP8266 je iba READ-ONLY diagnostické HMI bez process/control autority. Nemení M1↔M2 V6, safety, TOTAL STOP, agreement, BASIC, `SystemMode`, piny ani výstupy.
+- Hlavná stránka zobrazuje M2 reality/safety diagnostiku a prijatý M1 command snapshot. Dátum a čas získava ESP samostatne cez NTP; časová zóna je Europe/Bratislava s automatickým CET/CEST. Platný čas je dostupný aj v `/api/status` ako `DATE` a `TIME`.
+- Stránka `/logs` zobrazuje dennú históriu teplôt M2 T1/T2/T3/TBOX a prijatého M1 T1/T2/T3/T4/TBOX v dvoch grafoch a spoločnej tabuľke. Denné LittleFS súbory majú tvar `/m2log_YYYYMMDD.csv`, interval je 60 s a každý riadok začína časom `HH:MM:SS`.
+- Logger zapíše riadok iba pri platnom NTP čase a čerstvom kompletnom M2→ESP snapshote; stale alebo chýbajúca telemetria sa nevydáva za aktuálnu a nevytvorí riadok. Neplatná jednotlivá teplota sa zapisuje ako `NA`, nie ako `0`. Automatické formátovanie LittleFS ani automatické mazanie starých logov nie je implementované.
+- `/`, `/logs`, `/api/status`, `/api/logdays` a `/api/log` povoľujú iba GET/HEAD; write metódy na logových trasách sú odmietnuté stavom 405. Existujúci POST `/config` zostáva výhradne lokálnym uložením Wi-Fi profilu ESP a nevytvára procesný príkaz.
+- Kvôli prerušovanému nedokončeniu väčších HTTP odpovedí cez telefónny hotspot posiela ESP HTML z PROGMEM po 512-bajtových blokoch s `yield()`. Overenie po nahratí: hlavná stránka 6 630 B PASS, `/logs` 3 549 B PASS, status/logdays API PASS, GET/HEAD PASS a POST/PUT/PATCH/DELETE na `/logs` → 405 PASS.
+- Mega2 ESP build a upload na COM4 prešli; flash hash bol overený. Build: globálna RAM `34 616 / 80 192 B`, IRAM `60 275 / 65 536 B`, flash kód `328 648 / 1 048 576 B`. Po teste bolo ESP dostupné cez DHCP na `192.168.43.43`, NTP čas a LittleFS boli `PASS`.
+- Pri dnešnom web teste bol stav `m2Online=false`; preto bol zoznam dní správne prázdny a nevznikol falošný historický riadok. Prvý reálny 60 s záznam s čerstvou M2 telemetriou a jeho zobrazenie zostávajú `PHYSICAL END-TO-END TEST PENDING`.
+
+## Mega1 ESP Wi-Fi/web HMI – implementované vo firmvéri, čaká na fyzický test (2026-08-31)
 
 - ESP web HMI prijíma rozšíriteľnú telemetriu Mega cez existujúci Serial3 link; riadiace príkazy zostávajú iba `SETTEMP=`, `FIL6H=TOGGLE` a `CHR1H=TOGGLE`.
 - Hlavná stránka zobrazuje Mega T1–T4, TBOX, AHT10 OUT/RH, efektívnu regulačnú `teplotaBazena` s `POOL_TEMP_VALID` vrátane platného UNO_T1 fallbacku, limity a nastavenie MAX_BAZEN, režim systému, R9/R10 súvisiace stavy a Mega↔Uno link/agreement.
